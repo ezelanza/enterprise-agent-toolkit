@@ -1,12 +1,16 @@
 # Intel® Agent Toolkit documentation
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="Intel® Agent Toolkit">
+</p>
+
 This is the technical documentation for Intel® Agent Toolkit. Every guide below links back here and to its related pages. If you have not used the stack before, start with **Meet** so you know what you are installing and which repository to clone. Then use **Get started** to stand it up on one host. **Deploy** covers other layouts (several nodes, Docker, teardown). After that, customize the YAML, operate the running cluster, and look things up in **Reference**.
 
-> **AI Solutions** installs, updates, and tears down Intel® Agent Toolkit. Clone [that repository](https://github.com/intel/enterprise-ai-solutions), run every command from its root, and `init agent-toolkit` clones this repository under `ext/`. [Meet the Agent Toolkit](overview/meet.md) is the walkthrough.
+> **Stack Manager** installs, updates, and tears down Intel® Agent Toolkit. Clone [that repository](https://github.com/intel/enterprise-ai-solutions), run every command from its root, and `init agent-toolkit` clones this repository under `ext/`. [Meet the Agent Toolkit](overview/meet.md) is the walkthrough.
 
 ## Meet
 
-These pages describe what the toolkit is, how AI Solutions installs it, and the words the rest of the docs use.
+These pages describe what the toolkit is, how Stack Manager installs it, and the words the rest of the docs use.
 
 | Guide | What it covers |
 |---|---|
@@ -28,20 +32,23 @@ Confirm the host is ready, run the installer on that single node, send a chat re
 
 The same installer can place the stack on more than one node, or you can run a smaller container-only layout. This section also covers tearing everything down and working through a corporate HTTP proxy.
 
-> [!NOTE]
-> [Docker Compose](deployment/docker.md) uses `docker/deploy.sh`, not `es_auto_installer.sh`. Rack-scale fabric deployments are covered by the AI Solutions [rack-scale guide](https://github.com/intel/enterprise-ai-solutions/blob/main/docs/rack-scale-deployment.md).
+> [!WARNING]
+> **Not installed by Stack Manager yet.** The team needs to review these two guides before anyone follows them:
 >
-> [Deploy on multiple nodes](deployment/multi-node.md) is the multi-host layout AI Solutions installs today.
+> - [Rack-scale AI fabric](deployment/rack-scale.md) still describes the standalone stack (`rack_scale_mode`, `agentic-config.cfg`).
+> - [Docker Compose](deployment/docker.md) still uses `docker/deploy.sh`, not `stack-manager`.
+>
+> [Deploy on multiple nodes](deployment/multi-node.md) is the multi-host layout Stack Manager installs today.
 
 | Guide | What it covers |
 |---|---|
 | [Deploy on multiple nodes](deployment/multi-node.md) | One control plane plus worker nodes, including the inventory YAML Kubespray uses |
-| [Docker Compose](deployment/docker.md) | Containers on a single Linux host with `docker/deploy.sh` (not installed by `es_auto_installer.sh`) |
-| [Rack-scale AI fabric](https://github.com/intel/enterprise-ai-solutions/blob/main/docs/rack-scale-deployment.md) | High-speed fabric and NVMe Ceph (AI Solutions guide) |
+| [Docker Compose](deployment/docker.md) | **Not installed by Stack Manager yet.** Containers on a single Linux host. Needs a team review. |
+| [Rack-scale AI fabric](deployment/rack-scale.md) | **Not installed by Stack Manager yet.** High-speed fabric and NVMe Ceph. Needs a team review. |
 | [Decommission and redeploy](deployment/decommission.md) | How to tear the toolkit (or the whole install) down and install again |
 | [Corporate proxy](deployment/proxy.md) | Setting `http_proxy`, `https_proxy`, and `no_proxy` so image pulls and model downloads work |
 
-AI Solutions can also install other software. Those guides use this structure on the Intel® Software Catalog:
+Stack Manager can also install other software. Those guides use this structure on the Intel® Software Catalog:
 
 | Software | Commands | Documentation |
 |---|---|---|
@@ -50,6 +57,9 @@ AI Solutions can also install other software. Those guides use this structure on
 ## Customize
 
 After the first install you can change models, routing, and content-safety screening by editing YAML and re-running `install`. You do not need to hand-edit Helm values for these.
+
+> [!WARNING]
+> **Needs a team check.** [Semantic routing](configuration/routing.md#semantic-routing) (`vllm_sr_enabled`) and the [hybrid router](configuration/hybrid-router.md) (`hybrid_router_enabled`) were backlog in the first Stack Manager release. Confirm they deploy before treating those guides as current. LiteLLM Auto Router in the [quickstart](getting-started/quickstart.md#optional-route-simple-vs-complex-prompts) does not use those flags.
 
 | Guide | What it covers |
 |---|---|
@@ -65,7 +75,7 @@ Once the cluster is up, these pages help you watch it, migrate from the old stan
 | Guide | What it covers |
 |---|---|
 | [Troubleshooting](faq-and-troubleshooting/troubleshooting.md) | Installer, API, Redis, and model-pod failures, with the command to run for each |
-| [Migration guide](../MIGRATION-GUIDE.md) | Where features from the old standalone stack live now that AI Solutions installs them |
+| [Migration from the monolith](../MIGRATION-GUIDE.md) | Where features from the old standalone stack live now that Stack Manager installs them |
 
 ## Reference
 
