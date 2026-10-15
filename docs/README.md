@@ -4,7 +4,7 @@
   <img src="assets/banner.jpg" alt="Intel® Agent Toolkit">
 </p>
 
-This is the technical documentation for Intel® Agent Toolkit. Every guide below links back here and to its related pages. If you have not used the stack before, start with **Meet** so you know what you are installing and which repository to clone. Then use **Get started** to stand it up on one host. **Deploy** covers other layouts (several nodes, Docker, teardown). After that, customize the YAML, operate the running cluster, and look things up in **Reference**.
+This is the technical documentation for Intel® Agent Toolkit. Every guide below links back here and to its related pages. If you have not used the stack before, start with **Meet** so you know what you are installing and which repository to clone. Then use **Get started** to stand it up on one host. **Deploy** covers other layouts (several nodes, Docker, teardown). After that, customize the YAML, operate the running cluster, and look things up in **Reference**. To help improve the toolkit, see **Contribute**.
 
 > **Stack Manager** installs, updates, and tears down Intel® Agent Toolkit. Clone [that repository](https://github.com/intel/enterprise-ai-solutions), run every command from its root, and `init agent-toolkit` clones this repository under `ext/`. [Meet the Agent Toolkit](overview/meet.md) is the walkthrough.
 
@@ -87,3 +87,11 @@ What the layer exposes inside the cluster, and how agent applications connect to
 | [Agent sandbox](reference/agent-sandbox.md) | Isolated pods for agent-generated code: templates, warm pools, and the SDK |
 | [KubeRay](reference/kuberay.md) | Ray jobs inside the cluster. Disabled by default until you turn it on |
 | [Glossary](reference/glossary.md) | Terms used across these guides, each linked to the page that owns it |
+
+## Contribute
+
+Report a bug, fix a guide, or add a component. The guide starts with a table: find what you want to do and follow that row.
+
+| Guide | What it covers |
+|---|---|
+| [Contributing](../CONTRIBUTING.md) | What to do for each kind of change, your first pull request, the checks that run, and how to add a component |

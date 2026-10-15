@@ -172,7 +172,7 @@ The technical documentation lives in [`docs/`](docs/README.md). The index is org
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how Stack Manager installs this repository and how to add a component.
+Bug reports, doc fixes, and new components are all welcome. [CONTRIBUTING.md](CONTRIBUTING.md) starts with a table of what to do for each kind of change, then walks through your first pull request.
 
 ---
 
