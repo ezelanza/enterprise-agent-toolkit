@@ -58,6 +58,7 @@ Run the commands on that host as a non-root user with `sudo`. The installer logs
 
 Use Ubuntu 22.04 or 24.04 on a 64-bit Intel® processor, with 48 cores, **128 GB RAM** (160 GB+ for the default model), 150 GB of free disk, and a network that can download container images. The default model needs about 131 GB of RAM, so on a 128 GB server set the model to `qwen2-5-coder-7b` or `llama-3-1-8b` in step 3. DNS and certificates are in [Prerequisites](docs/getting-started/prerequisites.md).
 
+<!-- golden-path: expect "SSH OK" -->
 ```bash
 # Raise the kernel file-watch limit the containers need.
 sudo tee /etc/sysctl.d/90-inotify.conf > /dev/null <<'EOF'
@@ -76,8 +77,9 @@ Go on to the next step when that last command prints `SSH OK`. You will add the 
 
 ### 2. Install Toolkit Manager and generate the configuration
 
+<!-- golden-path: timeout 1800 -->
 ```bash
-git clone -b release-1.2 https://github.com/intel/toolkit-manager.git
+git clone -b release-2.0 https://github.com/intel/toolkit-manager.git
 cd toolkit-manager
 ./toolkit_manager.sh configure
 ./toolkit_manager.sh init agent-toolkit
@@ -99,8 +101,10 @@ Run the rest of this quickstart from the `toolkit-manager` directory, because `i
 
 ### 4. Install
 
+For a gated model (Llama, Gemma), export `HF_TOKEN` first. The default `qwen2-5-coder-14b` is not gated, so skip that.
+
+<!-- golden-path: timeout 7200 -->
 ```bash
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx   # only for a gated model (Llama, Gemma)
 ./toolkit_manager.sh install agent-toolkit
 ```
 
@@ -108,6 +112,7 @@ The first install usually takes 20–40 minutes, and the model pod can spend ano
 
 ### 5. Verify
 
+<!-- golden-path: retry 60 30; timeout 2400; expect "choices" -->
 ```bash
 export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
 kubectl get nodes
@@ -123,10 +128,18 @@ grep -q "litellm.api.example.com" /etc/hosts || \
 export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d)
 
-curl -k https://litellm.api.example.com/v1/models \
+# On a single node, curling the LoadBalancer IP from that same host often
+# resets the TLS handshake (MetalLB hairpin). Port-forward for the smoke test;
+# use https://litellm.api.example.com from any other machine.
+kubectl -n litellm port-forward svc/litellm 4000:4000 >/tmp/litellm-pf.log 2>&1 &
+PF=$!
+trap 'kill $PF 2>/dev/null' EXIT
+sleep 2
+
+curl http://127.0.0.1:4000/v1/models \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"
 
-curl -k https://litellm.api.example.com/v1/chat/completions \
+curl http://127.0.0.1:4000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -d '{"model": "qwen2-5-coder-14b",
@@ -134,11 +147,12 @@ curl -k https://litellm.api.example.com/v1/chat/completions \
        "max_tokens": 100}'
 ```
 
-A working platform lists `qwen2-5-coder-14b` from `/v1/models` and returns the model's reply in `choices[0].message.content`. Pass `-k` on those `curl` commands because the certificate was signed by the installer. Redis, pgvector, and the sandbox are already running behind that gateway, and their addresses inside the cluster are in the [backend connection reference](docs/reference/backend-connections.md).
+A working platform lists `qwen2-5-coder-14b` from `/v1/models` and returns the model's reply in `choices[0].message.content`. From another machine, call `https://litellm.api.example.com` with `-k` because the certificate was signed by the installer. Redis, pgvector, and the sandbox are already running behind that gateway, and their addresses inside the cluster are in the [backend connection reference](docs/reference/backend-connections.md).
 
 | Symptom | Resolution |
 |---|---|
 | `Could not resolve host` | The `/etc/hosts` line is missing or uses the wrong IP. Rerun the `GW=` commands. |
+| TLS `Connection reset` on this host | Expected on a single-node MetalLB setup. Use the port-forward curls above, or call the gateway from another machine. |
 | `401` | `LITELLM_MASTER_KEY` is not set in this shell. Rerun the `export`. |
 | `model not found` | Use the `id` returned by `/v1/models`. The default id is `qwen2-5-coder-14b`. |
 | `500`, `503`, or a timeout | The model is still loading. Wait until its pod is `1/1 Running`, then retry. |

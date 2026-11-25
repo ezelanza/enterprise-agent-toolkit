@@ -11,7 +11,7 @@ Run every command from the [Toolkit Manager](https://github.com/intel/toolkit-ma
 ## 1. Prepare the host and seed config
 
 ```bash
-git clone -b release-1.2 https://github.com/intel/toolkit-manager.git
+git clone -b release-2.0 https://github.com/intel/toolkit-manager.git
 cd toolkit-manager
 ./toolkit_manager.sh configure
 ./toolkit_manager.sh init agent-toolkit     # writes env/local/

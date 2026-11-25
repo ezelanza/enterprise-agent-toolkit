@@ -30,7 +30,7 @@ Start with [Toolkit Manager](https://github.com/intel/toolkit-manager). It insta
 From a terminal:
 
 ```bash
-git clone -b release-1.2 https://github.com/intel/toolkit-manager.git
+git clone -b release-2.0 https://github.com/intel/toolkit-manager.git
 cd toolkit-manager
 ./toolkit_manager.sh configure
 ./toolkit_manager.sh init agent-toolkit
