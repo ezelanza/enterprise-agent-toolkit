@@ -155,7 +155,11 @@ The standalone stack stored flags in `agentic-config.cfg`. Toolkit Manager maps 
 | `deploy_kubernetes_fresh` | Omit `existing_kubernetes` and the installer creates the cluster |
 | `vault.yml` | Removed: installer generates secrets |
 
-Not in this release: the Flowise plugin (`deploy_agenticai_plugin`), Intel® Arc™ (XPU) and other GPU `compute_platform` values, rack-scale networking, and `air_gapped`. The Arc procedure is in [Intel® Arc™ (XPU)](../deployment/intel-arc.md). Kata Containers (`kata_containers_enabled`, `kata-fc` / `kata-qemu`) is a sandbox option and needs `agent_sandbox_enabled: true`. The steps are in [Agent sandbox](../reference/agent-sandbox.md#kata-containers). Docker Compose is a separate path: [Docker](../deployment/docker.md) uses `docker/deploy.sh`, not `./toolkit_manager.sh install`.
+Not in this release: the Flowise plugin (`deploy_agenticai_plugin`), Intel® Arc™ GPU (`compute_platform` XPU and other GPU values), rack-scale networking, and `air_gapped`. The procedure is in [Intel® Arc™ GPU](../deployment/intel-arc.md). Kata Containers (`kata_containers_enabled`, `kata-fc` / `kata-qemu`) is a sandbox option and needs `agent_sandbox_enabled: true`. The steps are in [Agent sandbox](../reference/agent-sandbox.md#kata-containers). Docker Compose is a separate path: [Docker](../deployment/docker.md) uses `docker/deploy.sh`, not `./toolkit_manager.sh install`.
+
+---
+
+*Intel, the Intel logo, and Arc are trademarks of Intel Corporation or its subsidiaries.*
 
 ## Next steps
 

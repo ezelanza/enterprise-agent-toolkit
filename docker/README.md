@@ -1,6 +1,6 @@
-# Agentic AI Stack — Docker Compose Deployment
+# Intel® Agent Toolkit — Docker Compose deployment
 
-A complete Docker Compose solution for the Agentic AI Stack that mirrors the Kubernetes deployment without requiring a cluster. All components run as containers with ports exposed directly to the host.
+A Docker Compose path for Intel® Agent Toolkit that mirrors the Kubernetes deployment without requiring a cluster. All components run as containers with ports exposed directly to the host.
 
 ---
 

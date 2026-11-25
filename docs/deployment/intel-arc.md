@@ -1,4 +1,4 @@
-# Intel® Arc™ (GPU)
+# Intel® Arc™ GPU
 
 [← Docs index](../README.md)
 
@@ -34,9 +34,9 @@ ls /dev/dri/
 
 ### GPU driver and Level Zero
 
-Install the Intel GPU driver and compute runtime for the kernel (Xe or i915) so `libze_intel_gpu.so.1` and `libze_loader.so.1` exist under `/usr/lib/x86_64-linux-gnu/`. The vLLM XPU image does not ship these libraries. The Helm chart mounts them from the host (`extraVolumes` and `extraVolumeMounts` in `xpu-values.yaml`), so they have to be on the node before you deploy.
+Install the Intel® Arc™ GPU driver and compute runtime for the kernel (Xe or i915) so `libze_intel_gpu.so.1` and `libze_loader.so.1` exist under `/usr/lib/x86_64-linux-gnu/`. The vLLM XPU image does not ship these libraries. The Helm chart mounts them from the host (`extraVolumes` and `extraVolumeMounts` in `xpu-values.yaml`), so they have to be on the node before you deploy.
 
-### Intel GPU plugin
+### Device plugin
 
 When `compute_platform=xpu`, the install runs `run_deploy_intel_gpu_plugin_playbook` (`core/lib/components/intel-gpu-plugin.sh`) after the cluster configuration playbook and before any model. It applies the base overlay from [intel/intel-device-plugins-for-kubernetes](https://github.com/intel/intel-device-plugins-for-kubernetes). No NFD labels are required. It waits for the DaemonSet:
 
@@ -142,8 +142,8 @@ Use the model id from the table for the model you deployed. `BASE_URL` is `litel
 
 | Symptom | Cause | What to do |
 |---|---|---|
-| Pod stuck `Pending`, event `Insufficient gpu.intel.com/xe` | Intel GPU plugin is missing, or `xpuDeviceResource` does not match the driver | Install the plugin and confirm the resource name (`xe` or `i915`) |
-| `libze_loader.so.1: cannot open shared object file` | The host has no Level Zero runtime | Install the Intel GPU compute runtime so the libraries exist under `/usr/lib/x86_64-linux-gnu/` |
+| Pod stuck `Pending`, event `Insufficient gpu.intel.com/xe` | The device plugin is missing, or `xpuDeviceResource` does not match the driver | Install the plugin and confirm the resource name (`xe` or `i915`) |
+| `libze_loader.so.1: cannot open shared object file` | The host has no Level Zero runtime | Install the Intel® Arc™ GPU compute runtime so the libraries exist under `/usr/lib/x86_64-linux-gnu/` |
 | `CreateContainerConfigError` or permission denied on `/dev/dri` | `supplementalGroups` does not match the host `render` and `video` groups | `getent group render video`, then update `xpu-values.yaml` |
 | `Invalid value for compute_platform` | Value is not `xpu` / `x` (or another accepted GPU value) | Set `compute_platform=xpu` (or `x`) and re-run the precheck |
 | Model deploys and never appears in LiteLLM | `xpu_playbook` or `xpu_values_file` was not passed to Ansible | `install-model.sh` should pass `xpu_playbook=true` and `xpu_values_file=...` as `--extra-vars` |
@@ -152,4 +152,8 @@ Use the model id from the table for the model you deployed. `BASE_URL` is `litel
 
 - [CPU model configuration](../configuration/xeon-models.md): the CPU path next to this one
 - [Configuration](../configuration/configuration.md): YAML flags and the old INI mapping
-- [Intel GPU plugin](https://github.com/intel/intel-device-plugins-for-kubernetes), [vLLM XPU](https://docs.vllm.ai/en/latest/getting_started/xpu-installation.html), [Intel discrete GPU drivers](https://dgpu-docs.intel.com/driver/client/overview.html)
+- [Intel device plugins for Kubernetes](https://github.com/intel/intel-device-plugins-for-kubernetes), [vLLM XPU](https://docs.vllm.ai/en/latest/getting_started/xpu-installation.html), [Intel discrete GPU drivers](https://dgpu-docs.intel.com/driver/client/overview.html)
+
+---
+
+*Intel, the Intel logo, and Arc are trademarks of Intel Corporation or its subsidiaries.*

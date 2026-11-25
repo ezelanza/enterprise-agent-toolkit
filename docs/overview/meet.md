@@ -7,7 +7,7 @@ Intel® Agent Toolkit is a Kubernetes layer for running production AI agents on 
 You select the models to serve. The installer deploys the cluster, an OpenAI-compatible gateway, and this toolkit. Applications call the gateway with the same clients they already use for OpenAI: only the base URL and API key change.
 
 <p align="center">
-  <img src="../assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
+  <img src="../assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® processors for orchestration and execution, with GPUs and cloud LLMs for inference.">
 </p>
 
 ## What is an agent in this stack?
@@ -126,3 +126,7 @@ If this is the first time you are installing the stack, work through the pages i
 3. **[Configuration](../configuration/configuration.md)**: the YAML files under `env/local/` when you need to change the default layout.
 
 The [glossary](../reference/glossary.md) defines the terms these pages use. The [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md) answers the questions people ask after a first read. For more than one host, go to [multi-node deployment](../deployment/multi-node.md). After Hello works, copy in-cluster URLs from the [backend connection reference](../reference/backend-connections.md), or turn on [guardrails](../configuration/guardrails.md) and [routing](../configuration/routing.md).
+
+---
+
+*Intel, the Intel logo and Xeon are trademarks of Intel Corporation or its subsidiaries.*

@@ -37,7 +37,7 @@ LangGraph and CrewAI are **orchestration** libraries: they decide when to call t
 
 ## Do I need a GPU?
 
-No. This release runs models on Intel® CPUs. You can add a cloud or GPU endpoint on the same LiteLLM gateway later. It is optional.
+No. This release runs models on Intel® processors. You can add a cloud or GPU endpoint on the same LiteLLM gateway later. It is optional.
 
 <a id="cloud-models"></a>
 

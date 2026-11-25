@@ -65,7 +65,7 @@ Do these in order on one host: prerequisites, quickstart, then the first agent.
 |---|---|
 | [Deploy on multiple nodes](deployment/multi-node.md) | One control plane plus worker nodes, including the inventory YAML Kubespray uses |
 | [Rack-scale AI fabric](deployment/rack-scale.md) | High-speed fabric and NVMe Ceph |
-| [Intel® Arc™ (GPU)](deployment/intel-arc.md) | Model serving on Intel discrete GPUs |
+| [Intel® Arc™ GPU](deployment/intel-arc.md) | Model serving on Intel discrete GPUs |
 | [Docker Compose](deployment/docker.md) | Containers on a single Linux host, via `docker/deploy.sh` |
 | [Corporate proxy](deployment/proxy.md) | `http_proxy`, `https_proxy`, and `no_proxy` for image pulls and model downloads |
 | [Decommission and redeploy](deployment/decommission.md) | Tear the toolkit, or the whole install, down and install again |
@@ -114,7 +114,7 @@ These guides are here so the procedure is not lost. Toolkit Manager does not ins
 | Guide | What it covers |
 |---|---|
 | [Rack-scale AI fabric](deployment/rack-scale.md) | High-speed fabric and NVMe Ceph |
-| [Intel® Arc™ (XPU)](deployment/intel-arc.md) | vLLM on Intel discrete GPUs |
+| [Intel® Arc™ GPU](deployment/intel-arc.md) | vLLM on Intel discrete GPUs |
 | [vLLM semantic router](configuration/semantic-router.md) | Intent routing through `vllm-sr/auto`, including the dashboard and routing config |
 
 The Flowise plugin (`deploy_agenticai_plugin`) is also not in this release. It has no separate guide.
@@ -124,3 +124,7 @@ The Flowise plugin (`deploy_agenticai_plugin`) is also not in this release. It h
 | Guide | What it covers |
 |---|---|
 | [Contributing](../CONTRIBUTING.md) | What to do for each kind of change, your first pull request, the checks that run, and how to add a component |
+
+---
+
+*Intel, the Intel logo, and Arc are trademarks of Intel Corporation or its subsidiaries.*

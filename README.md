@@ -2,7 +2,7 @@
 
 <!-- vale off (due to hyperlinks) -->
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/intel/agent-toolkit/blob/main/LICENSE)
-[![Platform: Intel® Xeon®](https://img.shields.io/badge/Platform-Intel%C2%AE%20Xeon%C2%AE-0068B5)](https://www.intel.com/xeon)
+[![Platform: Intel® Xeon® processors](https://img.shields.io/badge/Platform-Intel%C2%AE%20Xeon%C2%AE%20processors-0068B5)](https://www.intel.com/xeon)
 [![Platform: GPU](https://img.shields.io/badge/Platform-GPU-0068B5)](https://www.intel.com/content/www/us/en/products/details/discrete-gpus.html)
 [![Deployment: Kubernetes](https://img.shields.io/badge/Deployment-Kubernetes-326CE5)](https://kubernetes.io)
 [![Gateway: LiteLLM](https://img.shields.io/badge/Gateway-LiteLLM-green)](https://litellm.ai)
@@ -22,7 +22,7 @@ Teams that want **production AI agents** usually discover that a language-model 
 Intel® Agent Toolkit is that plumbing, running on Kubernetes on **Intel® hardware** you already operate. [Toolkit Manager](https://github.com/intel/toolkit-manager) installs, updates, and tears it down, including the cluster and model serving. Applications keep an **OpenAI-compatible API**, so developers change the base URL and the API key and keep using LangGraph, CrewAI, or a similar framework. Data and weights stay on your hardware. A GPU is not required, because memory, tools, and coordination run on the CPU, while a GPU or a cloud model can still answer the language-model call when you want that.
 
 <p align="center">
-  <img src="docs/assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
+  <img src="docs/assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® processors for orchestration and execution, with GPUs and cloud LLMs for inference.">
 </p>
 
 ---
@@ -155,7 +155,7 @@ Point an OpenAI-compatible client at `https://litellm.api.example.com/v1` and gi
 | **Multi-node** | One control plane plus workers | [Multi-node](docs/deployment/multi-node.md) |
 | **Docker Compose** | Containers on one Linux host, without Toolkit Manager | [Docker](docs/deployment/docker.md) |
 
-Also available: [rack-scale networking](docs/deployment/rack-scale.md) and [Intel® Arc™ (GPU)](docs/deployment/intel-arc.md).
+Also available: [rack-scale networking](docs/deployment/rack-scale.md) and [Intel® Arc™ GPU](docs/deployment/intel-arc.md).
 
 ---
 
@@ -170,7 +170,7 @@ The map of every guide is the [docs index](docs/README.md). Start here:
 
 Related software Toolkit Manager can install: [Intel® Inference Toolkit](https://github.com/intel/inference-toolkit) and [Intel® Chatbot Toolkit](https://swcatalog.intel.com/developer/docs/enterprise-rag).
 
-> Discover more Intel® AI software on the [Intel® Software Catalog](https://swcatalog.intel.com/).
+> Discover more AI software on the [Intel® Software Catalog](https://swcatalog.intel.com/).
 
 ---
 
@@ -183,3 +183,8 @@ Bug reports, doc fixes, and new components are all welcome. [CONTRIBUTING.md](CO
 ## License
 
 Licensed under the [Apache License, Version 2.0](https://github.com/intel/agent-toolkit/blob/main/LICENSE).
+
+---
+
+*Intel, the Intel logo and Xeon are trademarks of Intel Corporation or its subsidiaries.*  
+*Intel, the Intel logo, and Arc are trademarks of Intel Corporation or its subsidiaries.*

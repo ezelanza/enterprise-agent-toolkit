@@ -14,9 +14,9 @@ These are the host minimums for a working install. A default install with `qwen2
 | **RAM** | 128 GB (with a smaller chat model) | 160 GB+ (default `qwen2-5-coder-14b`) |
 | **Disk** | 150 GB free | 200 GB |
 | **OS** | Ubuntu 22.04 or 24.04 | Ubuntu 22.04 LTS |
-| **Processor** | Intel® x86_64 | Intel® Xeon® (validated) |
+| **Processor** | Intel® x86_64 | Intel® Xeon® processor (validated) |
 
-The CPU, RAM, and disk rows are the sizing. Intel® Xeon® is the processor family this default path is validated on. The OS can boot in far less RAM; the numbers above are for the stack plus a chat model.
+The CPU, RAM, and disk rows are the sizing. The Intel® Xeon® processor family is what this default path is validated on. The OS can boot in far less RAM; the numbers above are for the stack plus a chat model.
 
 > Tensor-parallel models need more memory in the model pod: about 128 GiB for `tp1`/`tp2`, 256 GiB for `tp >= 4`.
 
@@ -133,3 +133,7 @@ If you add more hostnames later, regenerate the cert with extra `DNS:` entries.
 When SSH and `/etc/hosts` (or DNS) are in place, continue with the **[single-node quickstart](quickstart.md)** to install and send a chat request.
 
 If this host cannot reach the internet directly, set the proxy keys in [corporate proxy](../deployment/proxy.md) before you run `install`. For more than one server, use [multi-node deployment](../deployment/multi-node.md). [Meet the Agent Toolkit](../overview/meet.md) is the overview of what you are about to install; [Configuration](../configuration/configuration.md) lists every YAML field you can change later. Terms: [glossary](../reference/glossary.md).
+
+---
+
+*Intel, the Intel logo and Xeon are trademarks of Intel Corporation or its subsidiaries.*
