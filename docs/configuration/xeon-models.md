@@ -112,7 +112,7 @@ A default install of `qwen2-5-coder-14b` plus the guard model, router, and platf
 - [Choose a model](../getting-started/quickstart.md#3-choose-a-model): catalog names for the default install
 - [Configuration](configuration.md): where `models.yaml` sits next to the other env files
 - [Guardrails](guardrails.md): the `qwen3guard` catalog entry
-- Sizing references in the Intel® Xeon® Processor Advisor Tool: [cloud instances](https://xeonprocessoradvisor.intel.com/csp-ai-performance-advisor) and [on-prem servers](https://xeonprocessoradvisor.intel.com/on-prem-ai-performance-advisor)
+- Sizing references for Intel® Xeon® processors: [cloud instances](https://xeonprocessoradvisor.intel.com/csp-ai-performance-advisor) and [on-prem servers](https://xeonprocessoradvisor.intel.com/on-prem-ai-performance-advisor)
 
 ---
 
