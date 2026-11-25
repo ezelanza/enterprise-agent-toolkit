@@ -56,6 +56,11 @@ All keys are flat and live in `env/local/config.agent-toolkit.yaml`. The default
 | `kuberay_worker_max_replicas` | `4` | Autoscaler ceiling. |
 | `kuberay_worker_cpu_request` / `_limit` | `500m` / `2` | CPU per worker. |
 | `kuberay_worker_memory_request` / `_limit` | `2Gi` / `4Gi` | Memory per worker. |
+| `kuberay_head_cpu_request` / `_limit` | `500m` / `2` | CPU for the head pod. Passed through to the chart. |
+| `kuberay_head_memory_request` / `_limit` | `2Gi` / `4Gi` | Memory for the head pod. Passed through to the chart. |
+| `kuberay_dashboard_enabled` | `true` | Publish the Ray Dashboard on the gateway at `https://ray.<base_domain_name>/`. |
+| `kuberay_dashboard_hostname` | `ray.<base_domain_name>` | Dashboard hostname. Add it to DNS or `/etc/hosts`. |
+| `kuberay_dashboard_basic_auth` | `true` | Protect the gateway route with Secret `ray-dashboard-auth` (user `ray`). |
 
 Example with the defaults written out:
 
@@ -70,6 +75,11 @@ kuberay_worker_cpu_request: "500m"
 kuberay_worker_cpu_limit: "2"
 kuberay_worker_memory_request: "2Gi"
 kuberay_worker_memory_limit: "4Gi"
+kuberay_head_cpu_request: "500m"
+kuberay_head_cpu_limit: "2"
+kuberay_head_memory_request: "2Gi"
+kuberay_head_memory_limit: "4Gi"
+kuberay_dashboard_enabled: true
 ```
 
 Worker sizing profiles:
@@ -82,9 +92,8 @@ Worker sizing profiles:
 
 Limitations of the current role:
 
-- **Head pod:** uses the chart defaults (CPU `500m` / `1`, memory `2Gi` / `4Gi`). The role defines `kuberay_head_*` keys but does not pass them to the chart, so setting them has no effect.
 - **`rayVersion`:** the RayCluster's `rayVersion` comes from the chart's `appVersion` (`2.40.0`). Changing `kuberay_ray_image` does not change it.
-- **Re-runs:** settings apply only when KubeRay is first installed. If the `kuberay-operator` Helm release exists, `install` skips all of KubeRay, including the RayCluster. To apply changed settings, [remove KubeRay](#6-remove-kuberay) and install again.
+- **Re-runs:** `install` runs `helm upgrade --install` for the operator and the RayCluster. A **failed** prior release is removed first, then reinstalled. To force a clean chart apply after a bad state, [remove KubeRay](#6-remove-kuberay) and install again.
 
 ## 1. Enable KubeRay
 

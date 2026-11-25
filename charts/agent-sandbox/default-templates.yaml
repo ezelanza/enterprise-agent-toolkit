@@ -9,7 +9,7 @@
 #   sandbox = client.create_sandbox(warmpool="python-pool", namespace="agent-sandbox-system")
 #
 # The install creates the python-pool SandboxWarmPool for this template; calls through the
-# router need its token (docs/agent-sandbox.md, "Router token").
+# router need its token (docs/reference/agent-sandbox.md, "Router token").
 # ---------------------------------------------------------------------------
 apiVersion: extensions.agents.x-k8s.io/v1beta1
 kind: SandboxTemplate

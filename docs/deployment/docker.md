@@ -4,7 +4,7 @@
 
 This path is separate from Toolkit Manager. Compose uses the in-tree `docker/` bundle (`bash docker/deploy.sh`). `toolkit_manager.sh` installs Kubernetes. For a first run with Toolkit Manager, use the [single-node quickstart](../getting-started/quickstart.md).
 
-This path runs the agent stack as **containers on a single Linux host**, without Kubernetes. You still get vLLM, LiteLLM, Redis, and Postgres, but they are started by Docker Compose rather than Helm. It is meant for a lab or development server where you do not want to provision a cluster. Production stays on Kubernetes.
+This path runs the agent stack as **containers on a single Linux host**, without Kubernetes. You still get a model engine (vLLM or OpenVINO™ Model Server), LiteLLM, Redis, and Postgres, started by Docker Compose rather than Helm. It is meant for a lab or development server where you do not want to provision a cluster. Production stays on Kubernetes. More engine detail: [`docker/README.md`](../../docker/README.md).
 
 ## Prerequisites
 
@@ -15,16 +15,19 @@ This path runs the agent stack as **containers on a single Linux host**, without
 | RAM | 128 GB (256 GB if you start two or more LLMs) |
 | Disk | 80 GB free |
 | CPU | 96+ cores |
-| Hugging Face token | Required for gated models |
+| Hugging Face token | Required for gated models (including the shipped default) |
 
 ## 1. Edit `docker/config.cfg`
 
+The file shipped in the repo already sets a model. The default is gated Gemma, so put a Hugging Face token in `hugging_face_token=` before the first run (this path does **not** read `HF_TOKEN` from the shell):
+
 ```ini
 hugging_face_token=hf_your_token_here
-models=Qwen/Qwen2.5-Coder-14B-Instruct
+models=google/gemma-4-26B-A4B-it
+# serving_engine=vllm          # default. Use openvino for OpenVINO™ Model Server
 ```
 
-Several models: comma-separated, **no spaces**:
+To use Qwen or several models instead (comma-separated, **no spaces**):
 
 ```ini
 models=Qwen/Qwen2.5-Coder-14B-Instruct,meta-llama/Llama-3.1-8B-Instruct
@@ -36,7 +39,7 @@ models=Qwen/Qwen2.5-Coder-14B-Instruct,meta-llama/Llama-3.1-8B-Instruct
 bash docker/deploy.sh
 ```
 
-Add `--observability` for Langfuse tracing. `bash docker/deploy.sh --help` lists the other flags.
+Add `--observability` for Langfuse tracing. Other flags (`--full`, `--pull`, `--skip-build`, `--down`) are listed by `bash docker/deploy.sh --help`.
 
 If containers are already running with the same model list, the script leaves them alone and only creates containers for models that are new. Secrets are written to `docker/vault.yml` and `docker/.env`. Do not commit those files.
 
@@ -53,7 +56,7 @@ curl http://localhost:4000/v1/models \
 curl http://localhost:4000/v1/chat/completions \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"model": "Qwen/Qwen2.5-Coder-14B-Instruct", "messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"model": "google/gemma-4-26B-A4B-it", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
 Use the full Hugging Face id as `"model"`: the same string you put in `models=` in `config.cfg`.
@@ -64,7 +67,7 @@ After a successful deploy, these ports are bound on the host. Credentials (datab
 
 | Service | Port | URL |
 |---|---|---|
-| vLLM | 2080+ | `http://localhost:2080/v1` (next model gets 2081, …) |
+| Model engine (vLLM or OVMS) | 2080+ | `http://localhost:2080/v1` (next model gets 2081, …) |
 | LiteLLM | 4000 | `http://localhost:4000` |
 | Flowise (if enabled) | 3000 | `http://localhost:3000` |
 | Langfuse (if enabled) | 3002 | `http://localhost:3002` |
@@ -99,7 +102,8 @@ Do not edit `docker-compose.vllm.yml` or `litellm/config.yaml` by hand; they are
 ## Optional flags in `config.cfg`
 
 ```ini
-tool_call_parser=qwen3_coder   # none to disable
+serving_engine=vllm            # vllm | openvino
+tool_call_parser=qwen3_coder   # none to disable (vLLM)
 deploy_docker_fresh=off        # on = install Docker if missing
 deploy_agenticai_plugin=off    # Flowise. Deprecated. Leave off.
 deploy_observability=off       # Langfuse
@@ -107,6 +111,8 @@ http_proxy=
 https_proxy=
 no_proxy=localhost,127.0.0.1,.genai-gateway,.redis,.postgres,.flowise
 ```
+
+`serving_engine=openvino` generates an OpenVINO™ Model Server compose file from `docker/ovms-model-configs.yaml` instead of vLLM. Details: [`docker/README.md`](../../docker/README.md).
 
 | Model family | Parser |
 |---|---|

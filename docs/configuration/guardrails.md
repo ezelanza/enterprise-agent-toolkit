@@ -4,7 +4,7 @@
 
 Guardrails screen each chat request with a small safety model **before** the main language model sees it. Unsafe prompts are blocked; safe prompts continue unchanged. Use them when the gateway is exposed to users whose prompts you do not control.
 
-Guardrails are not a separate installer target. They turn on with `auth_provider: litellm` in `env/local/global_config.yaml` ([Configuration](configuration.md)), because LiteLLM hosts and runs the screening logic. Two pieces work together:
+Guardrails are not a separate installer target. They turn on with LiteLLM (`auth_provider: litellm` / `auth_type: litellm_vkey`) because LiteLLM hosts and runs the screening logic. To keep LiteLLM but skip screening, set `guardrails_enabled: false` in `env/local/config.agent-toolkit.yaml` (that file overrides `config.inference.yaml`). Two pieces work together:
 
 | Piece | What it is |
 |---|---|
@@ -25,7 +25,11 @@ Prerequisites:
 Set the provider in `env/local/global_config.yaml`, then install:
 
 ```yaml
+# env/local/global_config.yaml
 auth_provider: litellm   # enables the content_safety guardrail (alt: keycloak)
+
+# env/local/config.agent-toolkit.yaml — optional override
+# guardrails_enabled: false   # LiteLLM stays; screening off
 ```
 
 ```bash
@@ -34,10 +38,11 @@ auth_provider: litellm   # enables the content_safety guardrail (alt: keycloak)
 ./toolkit_manager.sh install agent-toolkit
 ```
 
-| `auth_provider` | Result |
+| Setting | Result |
 |---|---|
-| `litellm` | Every chat request is screened by `content_safety` before it reaches the main LLM. The `qwen3guard` model deploys from `models.yaml`, and the guardrail is registered as part of the agent-toolkit layer. |
-| Any other value (for example `keycloak`) | The guardrail is not registered. The stack runs with no content moderation. |
+| `auth_provider: litellm` (and `guardrails_enabled` left at default) | Every chat request is screened by `content_safety` before it reaches the main LLM. The `qwen3guard` model deploys from `models.yaml`, and the guardrail is registered as part of the agent-toolkit layer. |
+| `guardrails_enabled: false` with LiteLLM still on | Gateway and keys stay; no content moderation. |
+| `auth_provider: keycloak` (or any non-LiteLLM value) | The guardrail is not registered. The stack runs with no content moderation. |
 
 The install registers the guardrail and returns without waiting for the guard pod. Until that pod is `Running`, every screened request is blocked (see [Fail-closed behavior](#fail-closed-behavior)).
 

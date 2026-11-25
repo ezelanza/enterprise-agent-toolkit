@@ -48,6 +48,18 @@ storage_backend: local-path      # local-path | nfs | ceph
 | `existing_kubernetes` | Path to a kubeconfig if the cluster already exists. Omit to provision Kubernetes. |
 | `storage_backend` | Where PVCs go. `local-path` on one node; `nfs` or `ceph` on several. |
 | `http_proxy` / `https_proxy` / `no_proxy` | [Corporate proxy](../deployment/proxy.md). `no_proxy` must include `.svc` and `.cluster.local`. |
+| `pods_cluster_cidr` | Pod CIDR of a bring-your-own cluster. Set this when OpenShell is on so LiteLLM can admit sandbox traffic from that range. |
+
+#### `auth_provider` and `auth_type`
+
+Toolkit Manager’s current sign-in knob is `auth_type` in the inference / agent-toolkit YAML (`jwt` or `litellm_vkey`). This repository still seeds and documents `auth_provider` in `global_config.yaml` for the same choice. Preflight maps them:
+
+| You want | Set in docs / `global_config.yaml` | Seeded / Toolkit Manager value |
+|---|---|---|
+| LiteLLM virtual keys (Agent Toolkit default) | `auth_provider: litellm` | `auth_type: litellm_vkey` (in `config.agent-toolkit.yaml`) |
+| Keycloak JWT on the AI gateway | `auth_provider: keycloak` | `auth_type: jwt` |
+
+Keep one pair consistent. Agent Toolkit `init` seeds `auth_type: litellm_vkey` in `config.agent-toolkit.yaml`. That file loads **after** `config.inference.yaml`, so `guardrails_enabled`, `hybrid_router_enabled`, and the `litellm_*` keys here override the inference layer.
 
 ### `config.inference.yaml`
 
@@ -90,10 +102,22 @@ openshell_enabled: false
 | Setting | Default | Meaning |
 |---|---|---|
 | `llm_services_autodeploy_models` | `["qwen2-5-coder-14b"]` | Models deployed during `install`. `[]` installs with no chat model. Deploy others later with `./model-manager deploy <name>` |
+| `auth_type` | `litellm_vkey` | API sign-in for this layer. Prefer leaving it; pair with `auth_provider` as in the table above |
+| `guardrails_enabled` | on when LiteLLM is on | Set `false` to keep LiteLLM but turn off content-safety screening. [Guardrails](guardrails.md) |
+| `hybrid_router_enabled` | `true` | Creates the `hybrid-router` virtual model. Overrides the same key in `config.inference.yaml`. [Hybrid router](hybrid-router.md) |
+| `litellm_public_paths` | `[]` | Paths published on LiteLLM’s route. Empty means all paths (admin UI and key API stay LiteLLM-authenticated) |
+| `litellm_allow_pod_network` | follows `openshell_enabled` | When OpenShell is on, LiteLLM admits API calls from the pod network. [OpenShell](../reference/openshell.md) |
+| `litellm_allowed_namespaces` | gateway, litellm, sandbox, kuberay | Namespaces LiteLLM admits on the mesh. Add your own ambient-labelled agent namespace here |
+| `node_preflight_enabled` | `true` | Runs `playbooks/preflight-check.yml` at the start of install (report only). [Validate](../faq-and-troubleshooting/validate.md) |
 | `redis_stack_namespace` | `redis` | Namespace for Redis Stack |
+| `redis_stack_storage_class` | `""` | PVC StorageClass. Empty uses the cluster default |
+| `redis_stack_persistence_size` | `10Gi` | Redis PVC size |
 | `pgvector_namespace` | `pgvector` | Namespace for PostgreSQL + pgvector |
 | `pgvector_database` / `pgvector_username` | `agentdb` / `agentuser` | Database and role |
+| `pgvector_storage_size` | `20Gi` | pgvector PVC size |
+| `pgvector_storage_class` | `""` | PVC StorageClass. Empty uses the cluster default |
 | `agent_sandbox_namespace` | `agent-sandbox-system` | Sandbox operator and pods |
+| `agent_sandbox_python_warm_pool_size` | `5` | Pre-warmed sandbox pods. Costs CPU/RAM on install; `0` disables. [Agent sandbox](../reference/agent-sandbox.md) |
 | `kuberay_enabled` | `false` | Set `true` to install Ray. [KubeRay](../reference/kuberay.md) |
 | `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` | `true` | Set `false` to skip that component |
 | `openshell_enabled` | `false` | Policy layer on the agent sandbox. [OpenShell](../reference/openshell.md) |

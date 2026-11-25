@@ -26,8 +26,10 @@ python-runtime-sandbox: uvicorn on :8888
 ```
 
 - Every component runs in the **`agent-sandbox-system`** namespace. The controller generates a NetworkPolicy that admits traffic only from `app=sandbox-router` pods in the same namespace, so templates and sandboxes must live there too.
-- The router is a Go reverse proxy (`sandbox-router-go`). This install turns on `--authz-mode=tokenreview`, so each request to the router must carry a Kubernetes service-account Bearer token. There is no static `ROUTER_AUTH_TOKEN` secret.
+- The router is a Go reverse proxy (`sandbox-router-go`). This install turns on `--authz-mode=tokenreview`, so each request to the router must carry a Kubernetes service-account Bearer token. There is no static `ROUTER_AUTH_TOKEN` secret. See [Router token](#router-token).
 - Sandbox create and delete go through the Kubernetes API (CRDs). The router only forwards traffic to a running sandbox pod.
+- Sandbox pods get an egress NetworkPolicy (`eat-sandbox-pool-egress`): they may reach the public internet, but **not** RFC1918 or link-local ranges. Code inside a sandbox cannot call in-cluster Redis, pgvector, or LiteLLM by ClusterIP. Reach those services from the agent pod, not from sandbox code.
+- A default install also creates a warm pool of **5** idle Python sandbox pods (`agent_sandbox_python_warm_pool_size`). That uses CPU and memory before the first tool call. Set the size to `0` to skip pre-warming.
 - All images come from published registries. No local build is required.
 
 | Component | Kind | Namespace | Image or detail |
@@ -51,9 +53,39 @@ After `./toolkit_manager.sh init agent-toolkit`, set these in `env/local/config.
 | `agent_sandbox_router_image` | `registry.k8s.io/agent-sandbox/sandbox-router-go:<version>` | Router image. Override to mirror it for air-gapped clusters. |
 | `agent_sandbox_python_runtime_image` | `registry.k8s.io/agent-sandbox/python-runtime-sandbox:<version>` | Image for the default template. Override to mirror it. |
 | `agent_sandbox_python_warm_pool_name` | `python-pool` | Name of the default warm pool. |
-| `agent_sandbox_python_warm_pool_size` | `5` | Pre-warmed pods. `0` creates no warm pool. |
+| `agent_sandbox_python_warm_pool_size` | `5` | Pre-warmed pods kept ready for the first call. Uses node CPU and memory on install. `0` creates no warm pool. |
 
 Cluster-wide settings that also apply (`auth_provider`, `base_domain_name`, `gateway_tls_mode`) are in `env/local/global_config.yaml`. See [Configuration](../configuration/configuration.md).
+
+<a id="router-token"></a>
+
+## Router token
+
+Every data-plane call through the router (command execution after `create_sandbox`) needs a Kubernetes service-account Bearer token. `/healthz` does not. Mint a short-lived token from a service account that can talk to the API (the default SA in the sandbox namespace is enough for a lab):
+
+```bash
+export ROUTER_TOKEN=$(kubectl create token default -n agent-sandbox-system --duration=1h)
+```
+
+Pass it on every SDK client that talks to the router with `extra_headers` (Direct mode). Tunnel mode in SDK 1.0.10 has no `extra_headers` field, so from a workstation use a port-forward plus Direct mode:
+
+```bash
+kubectl port-forward -n agent-sandbox-system svc/sandbox-router-svc 8080:8080
+```
+
+```python
+from k8s_agent_sandbox import SandboxClient
+from k8s_agent_sandbox.models import SandboxDirectConnectionConfig
+
+client = SandboxClient(
+    connection_config=SandboxDirectConnectionConfig(
+        api_url="http://localhost:8080",
+        extra_headers={"Authorization": f"Bearer {ROUTER_TOKEN}"},
+    )
+)
+```
+
+In an agent pod, use the same `extra_headers` with `api_url="http://sandbox-router-svc.agent-sandbox-system.svc.cluster.local:8080"`, and prefer the pod's projected service-account token (`/var/run/secrets/kubernetes.io/serviceaccount/token`) instead of `kubectl create token`.
 
 ## 2. Install
 
@@ -100,23 +132,26 @@ Install the SDK version that matches the deployment. This release pins agent-san
 pip install k8s-agent-sandbox==1.0.10
 ```
 
-SDK documentation: [agentic-sandbox-client](https://github.com/kubernetes-sigs/agent-sandbox/tree/main/clients/python/agentic-sandbox-client).
+SDK documentation: [agentic-sandbox-client](https://github.com/kubernetes-sigs/agent-sandbox/tree/v1.0.10/clients/python/agentic-sandbox-client). Mint a [Router token](#router-token) first; every example below needs it on `extra_headers`.
 
 | Where the client runs | Connection |
 |---|---|
-| Agent pod in the cluster | Direct mode, `http://sandbox-router-svc.agent-sandbox-system.svc.cluster.local:8080`. No RBAC changes needed. |
-| Workstation, automatic port-forward | Tunnel mode (`SandboxLocalTunnelConnectionConfig`) |
-| Workstation, manual port-forward | Direct mode, `http://localhost:8080` |
+| Agent pod in the cluster | Direct mode to `sandbox-router-svc…:8080` plus a Bearer token |
+| Workstation | `kubectl port-forward` to the router Service, then Direct mode to `http://localhost:8080` plus a Bearer token |
 
-**In the cluster (agent pods).** This is how an agent runs code:
+**In the cluster (agent pods):**
 
 ```python
+from pathlib import Path
 from k8s_agent_sandbox import SandboxClient
 from k8s_agent_sandbox.models import SandboxDirectConnectionConfig
 
+token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
+
 client = SandboxClient(
     connection_config=SandboxDirectConnectionConfig(
-        api_url="http://sandbox-router-svc.agent-sandbox-system.svc.cluster.local:8080"
+        api_url="http://sandbox-router-svc.agent-sandbox-system.svc.cluster.local:8080",
+        extra_headers={"Authorization": f"Bearer {token}"},
     )
 )
 
@@ -131,15 +166,17 @@ finally:
     sandbox.terminate()
 ```
 
-**From a workstation, tunnel mode.** The SDK opens the `kubectl port-forward` itself:
+**From a workstation.** Keep a port-forward running, mint `ROUTER_TOKEN` as in [Router token](#router-token), then:
 
 ```python
+import os
 from k8s_agent_sandbox import SandboxClient
-from k8s_agent_sandbox.models import SandboxLocalTunnelConnectionConfig
+from k8s_agent_sandbox.models import SandboxDirectConnectionConfig
 
 client = SandboxClient(
-    connection_config=SandboxLocalTunnelConnectionConfig(
-        namespace="agent-sandbox-system"
+    connection_config=SandboxDirectConnectionConfig(
+        api_url="http://localhost:8080",
+        extra_headers={"Authorization": f"Bearer {os.environ['ROUTER_TOKEN']}"},
     )
 )
 
@@ -154,15 +191,7 @@ finally:
     sandbox.terminate()
 ```
 
-**From a workstation, direct mode.** Keep a port-forward running in another terminal:
-
-```bash
-kubectl port-forward -n agent-sandbox-system svc/sandbox-router-svc 8080:8080
-```
-
-Then use the in-cluster example with `api_url="http://localhost:8080"`.
-
-**Session sandbox (state across calls).** To keep installed packages and files between tool calls, create the sandbox once and reuse it:
+**Session sandbox (state across calls).** To keep installed packages and files between tool calls, create the sandbox once and reuse it (same `client` with the token):
 
 ```python
 _sandbox = None
@@ -331,14 +360,13 @@ kubectl get pod -n agent-sandbox-system -l sandbox=kata \
   -o jsonpath='{.items[0].spec.runtimeClassName}{"\n"}'   # kata-fc
 ```
 
-From the SDK, only the warm pool name changes:
+From the SDK, use the same client as in [Run code from the SDK](#4-run-code-from-the-sdk) (with the [Router token](#router-token) on `extra_headers`). Only the warm pool name changes:
 
 ```python
 sandbox = client.create_sandbox(
     warmpool="kata-pool",
     namespace="agent-sandbox-system",
 )
-sandbox.connector.session.headers["Authorization"] = f"Bearer {token}"
 try:
     # A microVM has its own guest kernel. This differs from `uname -r` on the host.
     print(sandbox.commands.run("uname -r").stdout)

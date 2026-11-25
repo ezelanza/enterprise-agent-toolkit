@@ -79,7 +79,8 @@ The gateway is HTTPS. Browsers and `curl` need a name that matches the certifica
 |---|---|
 | `litellm.api.example.com` | LiteLLM UI and API |
 | `langfuse.api.example.com` | Langfuse tracing UI |
-| `vllm-sr.api.example.com` | vLLM Semantic Router dashboard |
+| `ray.api.example.com` | Ray Dashboard when KubeRay is on. [KubeRay](../reference/kuberay.md) |
+| `vllm-sr.api.example.com` | vLLM Semantic Router dashboard. Not in this release |
 | `coding-agent-api.example.com` | Coding Agent UI. Not in this release |
 
 ### Production
@@ -101,6 +102,7 @@ Map the names to this host. The default `gateway_tls_mode: selfsigned` creates t
    sudo bash -c 'cat >> /etc/hosts <<EOF
    <GATEWAY_IP> litellm.api.example.com
    <GATEWAY_IP> langfuse.api.example.com
+   <GATEWAY_IP> ray.api.example.com
    <GATEWAY_IP> vllm-sr.api.example.com
    127.0.0.1 coding-agent-api.example.com
    EOF'
