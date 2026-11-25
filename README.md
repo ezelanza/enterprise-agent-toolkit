@@ -38,10 +38,11 @@ A default install gives you the components below. Every one of them is configura
 | **Short-term memory** | Redis Stack (with RediSearch) | Session state and recent context |
 | **Long-term memory** | PostgreSQL + pgvector | RAG, embeddings, and data that persists across restarts |
 | **Sandbox** | Agent Sandbox | Run agent-generated code in isolated pods, off the host |
+| **OpenShell** (optional) | Policy layer on the sandbox | Egress and tool policy around that code. Off until `openshell_enabled: true` — [OpenShell](docs/reference/openshell.md) |
 | **Guardrails** | LiteLLM content safety + guard model | Screen each prompt before the main model |
 | **Observability** | Langfuse + Prometheus / Grafana | Tokens, latency, and each agent step |
 
-Out of the box, Redis, pgvector, and the sandbox are on; each has an `*_enabled` flag to switch it off. OpenShell (a policy layer on the sandbox) and KubeRay (distributed Ray jobs) are off until you set `openshell_enabled: true` or `kuberay_enabled: true`.
+Out of the box, Redis, pgvector, and the sandbox are on; each has an `*_enabled` flag to switch it off. **OpenShell** and KubeRay are off by default. Turn OpenShell on with `openshell_enabled: true` after the first install ([OpenShell guide](docs/reference/openshell.md)); turn KubeRay on with `kuberay_enabled: true`.
 
 Agents are written in LangGraph, CrewAI, or any OpenAI-compatible SDK. This repository is the infrastructure those frameworks call; it does not replace them.
 
@@ -166,6 +167,7 @@ The map of every guide is the [docs index](docs/README.md). Start here:
 - [Meet the Agent Toolkit](docs/overview/meet.md)
 - [Prerequisites](docs/getting-started/prerequisites.md)
 - [Single-node quickstart](docs/getting-started/quickstart.md)
+- [OpenShell](docs/reference/openshell.md) — optional policy layer on the sandbox (`openshell_enabled: true`)
 - [Troubleshooting](docs/faq-and-troubleshooting/troubleshooting.md)
 
 Related software Toolkit Manager can install: [Intel® Inference Toolkit](https://github.com/intel/inference-toolkit) and [Intel® Chatbot Toolkit](https://swcatalog.intel.com/developer/docs/enterprise-rag).
