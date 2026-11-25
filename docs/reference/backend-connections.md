@@ -70,7 +70,7 @@ Isolated pods for agent-generated code. Full guide: [Agent sandbox](agent-sandbo
 |---|---|
 | **Namespace** | `agent-sandbox-system` |
 | **Router** | `sandbox-router-svc.agent-sandbox-system.svc.cluster.local:8080` |
-| **Version** | `v0.5.0` |
+| **Version** | `v1.0.10` |
 | **CRDs** | `sandboxes`, `sandboxtemplates`, `sandboxwarmpools` (`v1beta1`) |
 | **SDK** | `pip install k8s-agent-sandbox` |
 | **Default template** | `python-sandbox-template` |

@@ -26,17 +26,17 @@ python-runtime-sandbox: uvicorn on :8888
 ```
 
 - Every component runs in the **`agent-sandbox-system`** namespace. The controller generates a NetworkPolicy that admits traffic only from `app=sandbox-router` pods in the same namespace, so templates and sandboxes must live there too.
-- The router is the only component that calls the Kubernetes API. Client pods, such as the Coding Agent, need no RBAC of their own.
+- The router is a Go reverse proxy (`sandbox-router-go`). This install turns on `--authz-mode=tokenreview`, so each request to the router must carry a Kubernetes service-account Bearer token. There is no static `ROUTER_AUTH_TOKEN` secret.
+- Sandbox create and delete go through the Kubernetes API (CRDs). The router only forwards traffic to a running sandbox pod.
 - All images come from published registries. No local build is required.
 
 | Component | Kind | Namespace | Image or detail |
 |---|---|---|---|
-| `agent-sandbox-controller` | Deployment | `agent-sandbox-system` | `registry.k8s.io/agent-sandbox/agent-sandbox-controller:v0.5.0` |
+| `agent-sandbox-controller` | Deployment | `agent-sandbox-system` | `registry.k8s.io/agent-sandbox/agent-sandbox-controller:v1.0.10` |
 | CRDs | Cluster-scoped | | `sandboxes`, `sandboxtemplates`, `sandboxclaims`, `sandboxwarmpools` (v1beta1) |
-| `sandbox-router-deployment` | Deployment (×2) | `agent-sandbox-system` | `us-central1-docker.pkg.dev/k8s-staging-images/agent-sandbox/sandbox-router:latest-main` (staging) |
+| `sandbox-router` | Deployment | `agent-sandbox-system` | `registry.k8s.io/agent-sandbox/sandbox-router-go:v1.0.10` (TokenReview auth) |
 | `sandbox-router-svc` | Service | `agent-sandbox-system` | ClusterIP :8080 |
-| `sandbox-router-auth` | Secret | `agent-sandbox-system` | `ROUTER_AUTH_TOKEN`, generated at install and injected into the router |
-| `python-sandbox-template` | SandboxTemplate | `agent-sandbox-system` | `registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.0` |
+| `python-sandbox-template` | SandboxTemplate | `agent-sandbox-system` | `registry.k8s.io/agent-sandbox/python-runtime-sandbox:v1.0.10` |
 | `python-pool` | SandboxWarmPool | `agent-sandbox-system` | 5 pre-warmed pods from `python-sandbox-template` |
 
 ## 1. Configure
@@ -47,8 +47,8 @@ After `./toolkit_manager.sh init agent-toolkit`, set these in `env/local/config.
 |---|---|---|
 | `agent_sandbox_enabled` | `true` | Set `false` to skip the sandbox. |
 | `agent_sandbox_namespace` | `agent-sandbox-system` | Namespace for every sandbox component. |
-| `agent_sandbox_version` | `v0.5.0` | Upstream release. Selects the manifests fetched from GitHub and the runtime image tag. |
-| `agent_sandbox_router_image` | `…/sandbox-router:latest-main` | Router image. Override to mirror it for air-gapped clusters. |
+| `agent_sandbox_version` | `v1.0.10` | Upstream release. Selects the manifests fetched from GitHub and the runtime image tag. |
+| `agent_sandbox_router_image` | `registry.k8s.io/agent-sandbox/sandbox-router-go:<version>` | Router image. Override to mirror it for air-gapped clusters. |
 | `agent_sandbox_python_runtime_image` | `registry.k8s.io/agent-sandbox/python-runtime-sandbox:<version>` | Image for the default template. Override to mirror it. |
 | `agent_sandbox_python_warm_pool_name` | `python-pool` | Name of the default warm pool. |
 | `agent_sandbox_python_warm_pool_size` | `5` | Pre-warmed pods. `0` creates no warm pool. |
@@ -65,12 +65,11 @@ Cluster-wide settings that also apply (`auth_provider`, `base_domain_name`, `gat
 
 The installer:
 
-1. Skips the sandbox if the `agent-sandbox-controller` Deployment already exists.
-2. Creates the namespace and applies the upstream core manifest (CRDs and controller) and extensions manifest (template, claim, and warm-pool CRDs).
-3. Waits for the controller, creates the `sandbox-router-auth` secret, and deploys the router.
-4. Applies `python-sandbox-template` and creates the `python-pool` warm pool.
+1. Creates the namespace and applies the upstream `sandbox-with-extensions` manifest (CRDs and controller).
+2. Waits for the controller, then applies the published `sandbox-router` manifests and pins the router image. It also sets TokenReview auth (`--authz-mode=tokenreview`).
+3. Applies `python-sandbox-template` and creates the `python-pool` warm pool.
 
-Re-run `install` to resume a failed run. Because of step 1, a re-run does not change a sandbox that is already installed.
+Re-run `install` to resume a failed run or to re-apply the same manifests. The playbook does not skip the sandbox when the controller already exists.
 
 > The default `--env` is `local`; pass a different `--env <name>` to target
 > another environment. `teardown` and `validate <target>` verbs are also
@@ -80,7 +79,7 @@ Re-run `install` to resume a failed run. Because of step 1, a re-run does not ch
 
 ```bash
 kubectl get pods -n agent-sandbox-system                                    # all Running
-kubectl get deployment -n agent-sandbox-system agent-sandbox-controller sandbox-router-deployment
+kubectl get deployment -n agent-sandbox-system agent-sandbox-controller sandbox-router
 
 kubectl get crd sandboxes.agents.x-k8s.io -o jsonpath='{.spec.versions[*].name}'
 # Expected: v1alpha1 v1beta1
@@ -95,10 +94,10 @@ curl -s http://localhost:8080/healthz
 
 ## 4. Run code from the SDK
 
-Install the SDK version that matches the deployment. v0.5.0 deployments require the v0.5.0 SDK because of API changes.
+Install the SDK version that matches the deployment. This release pins agent-sandbox **v1.0.10**, so use the matching SDK:
 
 ```bash
-pip install k8s-agent-sandbox==0.5.0
+pip install k8s-agent-sandbox==1.0.10
 ```
 
 SDK documentation: [agentic-sandbox-client](https://github.com/kubernetes-sigs/agent-sandbox/tree/main/clients/python/agentic-sandbox-client).
@@ -391,13 +390,13 @@ OpenShell, which creates sandboxes through the same controller, is a separate gu
 | Controller already running | Kubernetes applies the manifests. It does not create a second controller |
 | Re-run | `./toolkit_manager.sh install agent-toolkit` applies the sandbox again. Running components stay |
 
-A new `agent_sandbox_version` still needs a fresh install. See [Upgrading](#upgrading).
+To move to a new `agent_sandbox_version`, set the pin in `config.agent-toolkit.yaml` and re-run `install`, or [tear the stack down](../deployment/decommission.md) and install again. See [Upgrading](#upgrading).
 
 ## Upgrading
 
-The version is pinned by `agent_sandbox_version`. A re-run skips the sandbox while the controller exists, so a new version only takes effect on a fresh install: [tear the stack down](../deployment/decommission.md) and install again.
+The version is pinned by `agent_sandbox_version` (default `v1.0.10`). Re-running `install` re-applies the manifests for that pin.
 
-From v0.4.6 to v0.5.0 (breaking changes):
+From an older pin (for example v0.5.0) to **v1.0.10**:
 
 1. Back up existing resources:
 
@@ -405,11 +404,12 @@ From v0.4.6 to v0.5.0 (breaking changes):
    kubectl get sandboxes,sandboxclaims,sandboxtemplates,sandboxwarmpools -A -o yaml > backup.yaml
    ```
 
-2. Install v0.5.0 as above.
-3. Upgrade the SDK: `pip install --upgrade k8s-agent-sandbox==0.5.0`.
-4. Change custom resources from `apiVersion: extensions.agents.x-k8s.io/v1alpha1` to `extensions.agents.x-k8s.io/v1beta1`. A conversion webhook converts existing v1alpha1 resources, so running sandboxes keep working.
+2. Set `agent_sandbox_version: "v1.0.10"` in `env/local/config.agent-toolkit.yaml` (or leave the default) and run `./toolkit_manager.sh install agent-toolkit`.
+3. Upgrade the SDK: `pip install --upgrade k8s-agent-sandbox==1.0.10`.
+4. Drop any client that relied on a static `ROUTER_AUTH_TOKEN`. The router now requires a Kubernetes service-account Bearer token (TokenReview).
+5. Keep custom resources on `apiVersion: extensions.agents.x-k8s.io/v1beta1`.
 
-For later versions, install the new version and upgrade the SDK to match.
+For later versions, raise the pin, re-run `install`, and upgrade the SDK to match.
 
 ## Troubleshooting
 
@@ -418,12 +418,12 @@ For later versions, install the new version and upgrade the SDK to match.
 | Pods not starting | `kubectl get pods -n agent-sandbox-system`, then `kubectl describe pod -n agent-sandbox-system <pod-name>` |
 | Controller errors | `kubectl logs -n agent-sandbox-system -l app.kubernetes.io/name=agent-sandbox` |
 | Router errors | `kubectl logs -n agent-sandbox-system -l app=sandbox-router` |
-| Image pull errors | Test registry access: `kubectl run test --rm -it --restart=Never --image=registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.0 -- echo "success"`. For air-gapped clusters, mirror the images and set `agent_sandbox_router_image` and `agent_sandbox_python_runtime_image`. |
-| SDK cannot connect | `kubectl get svc -n agent-sandbox-system sandbox-router-svc`, the `/healthz` check in [Verify](#3-verify), and `kubectl get networkpolicy -n agent-sandbox-system` |
+| Image pull errors | Test registry access: `kubectl run test --rm -it --restart=Never --image=registry.k8s.io/agent-sandbox/python-runtime-sandbox:v1.0.10 -- echo "success"`. For air-gapped clusters, mirror the images and set `agent_sandbox_router_image` and `agent_sandbox_python_runtime_image`. |
+| SDK cannot connect | `kubectl get svc -n agent-sandbox-system sandbox-router-svc`, the `/healthz` check in [Verify](#3-verify), and `kubectl get networkpolicy -n agent-sandbox-system`. Router data-plane calls need a service-account Bearer token (TokenReview). |
 
 ## Next steps
 
 - [Backend connection reference](backend-connections.md#agent-sandbox): in-cluster URL
 - [Configuration](../configuration/configuration.md) and [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md)
 - [Meet the Agent Toolkit](../overview/meet.md#toolkit-components)
-- Upstream: [agent-sandbox docs](https://agent-sandbox.sigs.k8s.io/docs/), [v0.5.0 release notes](https://github.com/kubernetes-sigs/agent-sandbox/releases/tag/v0.5.0), [v0.5.0 migration guide](https://github.com/kubernetes-sigs/agent-sandbox/blob/v0.5.0/docs/api-migration-guide.md), [SDK README](https://github.com/kubernetes-sigs/agent-sandbox/tree/main/clients/python/agentic-sandbox-client/README.md), [PyPI: k8s-agent-sandbox](https://pypi.org/project/k8s-agent-sandbox/)
+- Upstream: [agent-sandbox docs](https://agent-sandbox.sigs.k8s.io/docs/), [v1.0.10 release notes](https://github.com/kubernetes-sigs/agent-sandbox/releases/tag/v1.0.10), [SDK README](https://github.com/kubernetes-sigs/agent-sandbox/tree/v1.0.10/clients/python/agentic-sandbox-client), [PyPI: k8s-agent-sandbox](https://pypi.org/project/k8s-agent-sandbox/1.0.10/)

@@ -18,7 +18,7 @@ OpenShell is off by default (`openshell_enabled: false`). It needs `agent_sandbo
 |---|---|
 | OpenShell Helm chart and images | `0.1.6` (`oci://ghcr.io/nvidia/openshell/helm-chart`) |
 | OpenShell CLI | `v0.1.6` GitHub release |
-| Agent sandbox | `v0.5.0` (`agent_sandbox_enabled: true`) |
+| Agent sandbox | `v1.0.10` (`agent_sandbox_enabled: true`) |
 | Model proxy | LiteLLM when `auth_provider: "litellm"`. The provider step is skipped when LiteLLM is absent |
 | User authentication | Single-admin mode. The gateway is ClusterIP. Kubernetes RBAC gates access |
 | CNI | A CNI that enforces `NetworkPolicy` (Calico does) |
@@ -66,7 +66,7 @@ LiteLLM (:4000)                                  hosts allowed by the sandbox
 | Component | Used for | Changed |
 |---|---|---|
 | Kubernetes cluster | Gateway and sandbox pods | No |
-| Agent sandbox controller `v0.5.0` | Turns OpenShell `Sandbox` resources into pods | No |
+| Agent sandbox controller `v1.0.10` | Turns OpenShell `Sandbox` resources into pods | No |
 | LiteLLM (`auth_provider: "litellm"`) | The only path from a sandbox to models | One additional virtual key |
 | Model backends behind LiteLLM | Reached through LiteLLM only | No |
 | Toolkit Manager (`config.agent-toolkit.yaml`, `./toolkit_manager.sh`) | Installs and re-runs OpenShell | New `openshell_enabled` switch |
