@@ -33,7 +33,7 @@ auth_provider: litellm
 | Field | What it means |
 |---|---|
 | `base_domain_name` | Hostname of the gateway. Must match DNS or `/etc/hosts`. |
-| `auth_provider: litellm` | Use LiteLLM as the API gateway. The default is `keycloak`. LiteLLM issues the master key used in step 5, and turns on Langfuse traces and the content-safety guardrail. |
+| `auth_provider: litellm` | Use LiteLLM as the API gateway. Agent Toolkit installs with this value so LiteLLM issues the master key used in step 5 and turns on Langfuse traces and the content-safety guardrail. Set `keycloak` only if you want Keycloak JWT in front of the AI gateway instead. |
 
 Leave these two at their defaults:
 

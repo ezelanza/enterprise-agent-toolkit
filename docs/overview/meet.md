@@ -7,7 +7,7 @@ Intel® Agent Toolkit is a Kubernetes layer for running production AI agents on 
 You select the models to serve. The installer deploys the cluster, an OpenAI-compatible gateway, and this toolkit. Applications call the gateway with the same clients they already use for OpenAI: only the base URL and API key change.
 
 <p align="center">
-  <img src="../assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), tools and MCP servers, a policy-enforced sandbox (Agent Sandbox, OpenShell), and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
+  <img src="../assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
 </p>
 
 ## What is an agent in this stack?
@@ -61,7 +61,7 @@ A default install brings these parts up in order. Each part is configurable: you
 |---|---|---|
 | **Platform** | Kubernetes, storage, service mesh, identity, Prometheus / Grafana | `kubectl get nodes` shows Ready |
 | **Intel® Inference Toolkit** | Model serving (vLLM or another engine), LiteLLM or the AI gateway, Langfuse | `https://litellm.<base_domain_name>/v1/chat/completions` returns a completion |
-| **Intel® Agent Toolkit** (this repository) | Redis, PostgreSQL with pgvector, agent sandbox, MCP templates, optional KubeRay | Agents can store state, execute code, and call tools |
+| **Intel® Agent Toolkit** (this repository) | Redis, PostgreSQL with pgvector, agent sandbox, optional OpenShell and KubeRay | Agents can store state and execute code |
 
 `./toolkit_manager.sh init agent-toolkit` followed by `install agent-toolkit` installs all three. The toolkit needs Kubernetes and model serving, so a successful install includes both a model API and the agent backends.
 
@@ -83,9 +83,9 @@ The install and configuration guides use these names. Each component ships with 
 | **Redis Stack** | Enabled | Short-term memory: session state, caches, and RediSearch |
 | **PostgreSQL + pgvector** | Enabled | Long-term memory: embeddings, RAG, and data that persists across pod restarts |
 | **Agent sandbox** | Enabled | An isolated Kubernetes pod per code execution. Generated code does not run on the host |
-| **MCP servers** | Enabled, empty list | Templates for registering tools. Nothing is deployed until you add a server |
+| **OpenShell** | Disabled | Policy layer on the agent sandbox. Enable with `openshell_enabled: true` |
 | **KubeRay** | Disabled | Distributes Python tasks across worker pods. Enable with `kuberay_enabled: true` |
-| **Keycloak realm** | Enabled unless `keycloak_enabled: false` | Creates an `agent-toolkit` realm and `agent-toolkit-client` OIDC client on the platform's Keycloak. Does not deploy Keycloak itself |
+| **Keycloak realm** | On when auth is not LiteLLM | Creates an `agent-toolkit` realm on the platform's Keycloak when `auth_provider` is not `litellm`. Does not deploy Keycloak itself |
 | **Langfuse** | Enabled with LiteLLM | Trace UI for each LLM call: prompt, tokens, latency, and the model that served the request |
 
 ## Deployment commands

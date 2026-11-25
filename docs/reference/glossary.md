@@ -10,7 +10,7 @@ A program that calls a language model, then takes actions (run code, call a tool
 
 ## Agent toolkit
 
-This repository: Redis, pgvector, the sandbox, MCP, and optional KubeRay, plus the Kubernetes and model-serving pieces a full install brings up with them. [Toolkit Manager](../overview/meet.md#which-repository-to-start-from) clones it into `ext/` and installs, updates, and tears it down. Start at [Meet the Agent Toolkit](../overview/meet.md).
+This repository: Redis, pgvector, the sandbox, and optional OpenShell and KubeRay, plus the Kubernetes and model-serving pieces a full install brings up with them. [Toolkit Manager](../overview/meet.md#which-repository-to-start-from) clones it into `ext/` and installs, updates, and tears it down. Start at [Meet the Agent Toolkit](../overview/meet.md).
 
 ## `llm_services_autodeploy_models`
 
@@ -59,10 +59,6 @@ Open-source proxy that presents many model backends as one OpenAI-compatible API
 ## Master key
 
 The LiteLLM admin token. Stored in the Kubernetes secret `litellm-master-key` in namespace `litellm`. Your first `curl` uses this key. Do not put it in git. How to read it: [Backend connection reference](backend-connections.md) and [FAQ: Where is the API key?](../faq-and-troubleshooting/frequently-asked-questions.md#api-key).
-
-## MCP (Model Context Protocol)
-
-A standard for attaching tools (APIs, databases, files) to an agent. This stack ships a template chart. Nothing is deployed until you add entries to `mcp_servers_list`. Field list: [Configuration](../configuration/configuration.md#configagent-toolkityaml).
 
 ## pgvector
 

@@ -12,7 +12,7 @@ From the Toolkit Manager directory (see [which repository to start from](../over
 ./toolkit_manager.sh teardown agent-toolkit
 ```
 
-That removes the Helm releases and namespaces the toolkit install owns (`redis`, `pgvector`, `agent-sandbox-system`, `mcp`, `ray-system`, and related inference pieces such as `litellm` and `langfuse` when they were brought up as dependencies). It also cleans images the install loaded onto the nodes.
+That removes the Helm releases and namespaces the toolkit install owns (`redis`, `pgvector`, `agent-sandbox-system`, `ray-system`, `openshell-system` / `openshell-sandboxes` when OpenShell was on, and related inference pieces such as `litellm` and `langfuse` when they were brought up as dependencies). It also cleans images the install loaded onto the nodes.
 
 To tear down **everything** the installer created, including Kubernetes itself:
 

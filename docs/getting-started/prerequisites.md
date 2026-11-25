@@ -6,17 +6,17 @@ Do this once, on every server that will be part of the cluster, **before** the f
 
 ## Hardware
 
-These are the host minimums. The default model (`qwen2-5-coder-14b`) needs more RAM than the 32 GB row: a default install requests about 131 GiB. On a 128 GB node, choose `qwen2-5-coder-7b` or `llama-3-1-8b` in the [quickstart](quickstart.md#3-choose-a-model).
+These are the host minimums for a working install. A default install with `qwen2-5-coder-14b` requests about **131 GiB** of RAM. On a 128 GB node, choose `qwen2-5-coder-7b` or `llama-3-1-8b` in the [quickstart](quickstart.md#3-choose-a-model).
 
 | Requirement | Minimum | Comfortable |
 |---|---|---|
 | **CPU** | 48 cores, x86_64 | 96+ cores |
-| **RAM** | 32 GB | 64 GB |
+| **RAM** | 128 GB (with a smaller chat model) | 160 GB+ (default `qwen2-5-coder-14b`) |
 | **Disk** | 150 GB free | 200 GB |
 | **OS** | Ubuntu 22.04 or 24.04 | Ubuntu 22.04 LTS |
 | **Processor** | Intel® x86_64 | Intel® Xeon® (validated) |
 
-The CPU, RAM, and disk rows are the sizing. Intel® Xeon® is the processor family this default path is validated on.
+The CPU, RAM, and disk rows are the sizing. Intel® Xeon® is the processor family this default path is validated on. The OS can boot in far less RAM; the numbers above are for the stack plus a chat model.
 
 > Tensor-parallel models need more memory in the model pod: about 128 GiB for `tp1`/`tp2`, 256 GiB for `tp >= 4`.
 

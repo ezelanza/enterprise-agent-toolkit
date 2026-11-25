@@ -94,13 +94,11 @@ openshell_enabled: false
 | `pgvector_namespace` | `pgvector` | Namespace for PostgreSQL + pgvector |
 | `pgvector_database` / `pgvector_username` | `agentdb` / `agentuser` | Database and role |
 | `agent_sandbox_namespace` | `agent-sandbox-system` | Sandbox operator and pods |
-| `mcp_servers_namespace` | `mcp` | Namespace for MCP servers |
-| `mcp_servers_list` | empty | No MCP servers until you add entries |
 | `kuberay_enabled` | `false` | Set `true` to install Ray. [KubeRay](../reference/kuberay.md) |
-| `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` / `mcp_servers_enabled` | `true` | Set `false` to skip that component |
+| `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` | `true` | Set `false` to skip that component |
 | `openshell_enabled` | `false` | Policy layer on the agent sandbox. [OpenShell](../reference/openshell.md) |
-| `keycloak_agent_config_enabled` | follows `keycloak_enabled` (`true`) | Creates the `agent-toolkit` realm on the platform Keycloak |
-| `keycloak_agent_realm` / `keycloak_agent_client_id` | `agent-toolkit` / `agent-toolkit-client` | Realm and OIDC client names |
+| `keycloak_agent_config_enabled` | on when `auth_provider` is not `litellm` | Creates the `agent-toolkit` realm on the platform Keycloak |
+| `keycloak_agent_realm` | `agent-toolkit` | Realm name |
 
 Source defaults (copied at `init`): `config.yaml` at the root of this repo.
 

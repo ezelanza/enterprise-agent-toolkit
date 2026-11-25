@@ -13,7 +13,7 @@
 
 **Quickly deploy a production-ready, open source agentic AI stack.**
 
-> A Kubernetes platform with an API gateway, inference routing, agent memory, sandboxed code execution, MCP tools, and observability. Toolkit Manager installs the cluster and these pieces for you.
+> A Kubernetes platform with an API gateway, inference routing, agent memory, sandboxed code execution, and observability. Toolkit Manager installs the cluster and these pieces for you.
 
 ---
 
@@ -22,7 +22,7 @@ Teams that want **production AI agents** usually discover that a language-model 
 Intel® Agent Toolkit is that plumbing, running on Kubernetes on **Intel® hardware** you already operate. [Toolkit Manager](https://github.com/intel/toolkit-manager) installs, updates, and tears it down, including the cluster and model serving. Applications keep an **OpenAI-compatible API**, so developers change the base URL and the API key and keep using LangGraph, CrewAI, or a similar framework. Data and weights stay on your hardware. A GPU is not required, because memory, tools, and coordination run on the CPU, while a GPU or a cloud model can still answer the language-model call when you want that.
 
 <p align="center">
-  <img src="docs/assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), tools and MCP servers, a policy-enforced sandbox (Agent Sandbox, OpenShell), and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
+  <img src="docs/assets/overview.png" alt="Intel® Agent Toolkit. Your agent (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework) calls an API gateway (LiteLLM, auth, rate limits). The stack provides memory (Redis, PostgreSQL, pgvector), inference and routing (vLLM, SGLang, cloud LLMs), an agent sandbox for code execution, and observability (Langfuse, Prometheus, Grafana). Deployment scales from one node to a rack with Ansible, Helm, and autoscaling, on Kubernetes or Docker Compose, using Intel® Xeon® for orchestration and execution, with GPUs and cloud LLMs for inference.">
 </p>
 
 ---
@@ -37,12 +37,11 @@ A default install gives you the components below. Every one of them is configura
 | **Model serving** | Optimized OpenAI-compatible runtimes on Intel® hardware | The language model the agent calls |
 | **Short-term memory** | Redis Stack (with RediSearch) | Session state and recent context |
 | **Long-term memory** | PostgreSQL + pgvector | RAG, embeddings, and data that persists across restarts |
-| **Sandbox** | Agent Sandbox + OpenShell | Deploy agents and run their code securely, isolated from the host |
-| **Tools** | MCP server templates | Register APIs and tools the agent can invoke |
+| **Sandbox** | Agent Sandbox | Run agent-generated code in isolated pods, off the host |
 | **Guardrails** | LiteLLM content safety + guard model | Screen each prompt before the main model |
 | **Observability** | Langfuse + Prometheus / Grafana | Tokens, latency, and each agent step |
 
-Out of the box, Redis, pgvector, and the sandbox are on; each has an `*_enabled` flag to switch it off. MCP templates are installed, but no MCP server runs until you add one. KubeRay (distributed Ray jobs) is off until you set `kuberay_enabled: true`.
+Out of the box, Redis, pgvector, and the sandbox are on; each has an `*_enabled` flag to switch it off. OpenShell (a policy layer on the sandbox) and KubeRay (distributed Ray jobs) are off until you set `openshell_enabled: true` or `kuberay_enabled: true`.
 
 Agents are written in LangGraph, CrewAI, or any OpenAI-compatible SDK. This repository is the infrastructure those frameworks call; it does not replace them.
 
@@ -56,7 +55,7 @@ Run the commands on that host as a non-root user with `sudo`. The installer logs
 
 ### 1. Prepare the host
 
-Use Ubuntu 22.04 or 24.04 on a 64-bit Intel® processor, with 48 cores, 150 GB of free disk, and a network that can download container images. The OS boots in 32 GB, but the default model needs about 131 GB, so on a server with 128 GB set the model to `qwen2-5-coder-7b` or `llama-3-1-8b` in step 3. DNS and certificates are in [Prerequisites](docs/getting-started/prerequisites.md).
+Use Ubuntu 22.04 or 24.04 on a 64-bit Intel® processor, with 48 cores, **128 GB RAM** (160 GB+ for the default model), 150 GB of free disk, and a network that can download container images. The default model needs about 131 GB of RAM, so on a 128 GB server set the model to `qwen2-5-coder-7b` or `llama-3-1-8b` in step 3. DNS and certificates are in [Prerequisites](docs/getting-started/prerequisites.md).
 
 ```bash
 # Raise the kernel file-watch limit the containers need.

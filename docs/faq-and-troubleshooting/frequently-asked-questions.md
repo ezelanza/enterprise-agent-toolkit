@@ -23,7 +23,7 @@ Short answers to the questions that come up most often. Installation steps stay 
 
 ## What is the Agent Toolkit?
 
-Intel® Agent Toolkit is the infrastructure for production agents. [Toolkit Manager](../overview/meet.md#which-repository-to-start-from) installs, updates, and tears it down. A model endpoint is not enough for production agents: they also need Redis for short-term memory, PostgreSQL with pgvector for long-term memory, a code sandbox, MCP tool templates, and optionally Ray. Applications still call an OpenAI-compatible HTTPS API; only the base URL and key change.
+Intel® Agent Toolkit is the infrastructure for production agents. [Toolkit Manager](../overview/meet.md#which-repository-to-start-from) installs, updates, and tears it down. A model endpoint is not enough for production agents: they also need Redis for short-term memory, PostgreSQL with pgvector for long-term memory, a code sandbox, and optionally Ray. Applications still call an OpenAI-compatible HTTPS API; only the base URL and key change.
 
 See [Meet the Agent Toolkit](../overview/meet.md) for what install brings up and a request-flow diagram.
 
@@ -31,7 +31,7 @@ See [Meet the Agent Toolkit](../overview/meet.md) for what install brings up and
 
 ## How is this different from LangGraph or CrewAI?
 
-LangGraph and CrewAI are **orchestration** libraries: they decide when to call the model and which tool to invoke. This toolkit is the **infrastructure** those libraries use: the gateway, model serving, memory, and sandbox. Run LangGraph or CrewAI **on top of** this stack by pointing the framework at `https://<base_domain_name>/v1`.
+LangGraph and CrewAI are **orchestration** libraries: they decide when to call the model and which tool to invoke. This toolkit is the **infrastructure** those libraries use: the gateway, model serving, memory, and sandbox. Run LangGraph or CrewAI **on top of** this stack by pointing the framework at `https://litellm.<base_domain_name>/v1`.
 
 <a id="gpu"></a>
 
