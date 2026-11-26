@@ -48,7 +48,7 @@ A default install brings these parts up in order. Each part is configurable: you
 The numbered overview above is the product picture. The diagram below is the request path once the stack is running: the application calls the OpenAI-compatible gateway; behind it are model serving, memory, the sandbox, tools, and observability on the cluster (for example Kubernetes).
 
 <p align="center">
-  <img src="../assets/agent-toolkit-architecture.png" alt="Agent applications call an OpenAI-compatible gateway. Behind it: model serving, memory, sandbox, tools, and observability on the cluster (for example Kubernetes)">
+  <img src="../assets/agent-toolkit-architecture.png" alt="Intel® Agent Toolkit architecture: agent frameworks call a gateway with guardrails and observability; memory (Redis, PostgreSQL), sandbox and Ray, inference routing to SLMs and LLMs; deploy on Kubernetes or Docker Compose on Intel® Xeon® and accelerators.">
 </p>
 
 ## Toolkit components
