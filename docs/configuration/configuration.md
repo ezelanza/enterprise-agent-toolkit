@@ -61,7 +61,7 @@ Set `auth_type` in `config.agent-toolkit.yaml` (or `config.inference.yaml`). `in
 
 `config.agent-toolkit.yaml` loads **after** `config.inference.yaml`, so `auth_type`, `guardrails_enabled`, `hybrid_router_enabled`, and the `litellm_*` keys here override the inference layer.
 
-Legacy: `auth_provider` in `global_config.yaml` (`litellm` / `keycloak`) only triggers a Toolkit Manager deprecation warning and is mapped to `auth_type`. Prefer `auth_type`; do not set both to conflicting values.
+Legacy: `auth_provider` in `global_config.yaml` (`litellm` / `keycloak`) is deprecated and mapped to `auth_type`. Prefer `auth_type` only; if both are set they must agree or preflight fails.
 
 ### `config.inference.yaml`
 
@@ -166,4 +166,4 @@ In this release through Toolkit Manager: rack-scale fabric (`rack_scale_enabled`
 
 ## Next steps
 
-After you change YAML, re-run `./toolkit_manager.sh install agent-toolkit`. Toolkit components that are already installed (Redis, pgvector, sandbox, KubeRay) are skipped on a re-run, so their settings only apply to a fresh install: see [Decommission and redeploy](../deployment/decommission.md). The [single-node quickstart](../getting-started/quickstart.md) shows a first working set of values. In-cluster URLs for Redis, pgvector, and the sandbox are in the [backend connection reference](../reference/backend-connections.md). Content-safety screening is covered in [Guardrails](guardrails.md). Virtual model names are covered in [Routing](routing.md). If install fails, see [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).
+After you change YAML, re-run `./toolkit_manager.sh install agent-toolkit`. The toolkit roles (Redis, pgvector, sandbox, KubeRay, OpenShell) upgrade on every run, so their settings take effect without a teardown. The [single-node quickstart](../getting-started/quickstart.md) shows a first working set of values. In-cluster URLs for Redis, pgvector, and the sandbox are in the [backend connection reference](../reference/backend-connections.md). Content-safety screening is covered in [Guardrails](guardrails.md). Virtual model names are covered in [Routing](routing.md). To remove the agent layer and install again, see [Decommission and redeploy](../deployment/decommission.md). If install fails, see [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).

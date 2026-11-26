@@ -57,7 +57,7 @@ The install and configuration guides use these names. Each component ships with 
 
 | Component | Default | Role |
 |---|---|---|
-| **LiteLLM** | On (`auth_type: litellm_vkey`) | HTTPS gateway: one URL, one master key, OpenAI-compatible `/v1/chat/completions`. Or Envoy gateway with Keycloak auth (`auth_type: jwt`) |
+| **LiteLLM** | On (`auth_type: litellm_vkey`) | HTTPS gateway: one URL, virtual keys per app, OpenAI-compatible `/v1/chat/completions`. Or Envoy gateway with Keycloak auth (`auth_type: jwt`) |
 | **Redis Stack** | On | Short-term memory: session state, caches, and RediSearch |
 | **PostgreSQL + pgvector** | On | Long-term memory: embeddings, RAG, and data that persists across pod restarts |
 | **Agent Sandbox** | On | Isolated pods for agent actions, off the host |
@@ -77,11 +77,11 @@ After [Prerequisites](../getting-started/prerequisites.md):
 ./toolkit_manager.sh install agent-toolkit
 ```
 
-`init` copies this repository's defaults into `env/local/`. Edit that copy; do not treat the files in git as live configuration. Run `install` again to resume a failed install. Toolkit components that are already installed (Redis, pgvector, sandbox, KubeRay) are skipped, so a changed setting for one of them does not take effect on a re-run: see [Decommission and redeploy](../deployment/decommission.md).
+`init` copies this repository's defaults into `env/local/`. Edit that copy; do not treat the files in git as live configuration. Run `install` again to resume a failed install or to apply YAML changes: the toolkit roles (Redis, pgvector, sandbox, KubeRay, OpenShell) upgrade on every run.
 
 ## Request flow
 
-1. The application calls `https://litellm.<base_domain_name>/v1/chat/completions` with the LiteLLM master key.
+1. The application calls `https://litellm.<base_domain_name>/v1/chat/completions` with a LiteLLM **virtual key** (create one after install; the master key is only for smoke tests and key admin). See [Build your first agent](../getting-started/first-agent.md).
 2. LiteLLM authenticates the key. When guardrails are enabled, a safety model screens the prompt before the main model sees it.
 3. The request is sent to the named model, or to a router that selects a model. See [Routing](../configuration/routing.md).
 4. vLLM running on Intel® Platforms generates the completion.
@@ -103,7 +103,7 @@ If this is the first time you are installing the stack, work through the pages i
 2. **[Quickstart](../getting-started/quickstart.md)**: install on one host and send a chat request.
 3. **[Configuration](../configuration/configuration.md)**: the YAML files under `env/local/` when you need to change the default layout.
 
-The [glossary](../reference/glossary.md) defines the terms these pages use. The [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md) answers the questions people ask after a first read. For more than one host, go to [multi-node deployment](../deployment/multi-node.md). After Hello works, copy in-cluster URLs from the [backend connection reference](../reference/backend-connections.md), or tune [guardrails](../configuration/guardrails.md) and [routing](../configuration/routing.md).
+The [glossary](../reference/glossary.md) defines the terms these pages use. The [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md) answers the questions people ask after a first read. For more than one host, go to [multi-node deployment](../deployment/multi-node.md). After a chat completion succeeds, copy in-cluster URLs from the [backend connection reference](../reference/backend-connections.md), or tune [guardrails](../configuration/guardrails.md) and [routing](../configuration/routing.md).
 
 ---
 

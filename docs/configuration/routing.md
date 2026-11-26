@@ -43,25 +43,27 @@ Semantic routing is disabled by default. Enabling it does not alter models that 
 
    To install only this piece on a stack that is already up: `./toolkit_manager.sh install vllm_sr --only`.
 
-The installer is idempotent. Re-run it at any time; components that are already running are skipped.
+The installer is idempotent. Re-run it at any time; toolkit roles upgrade in place with the current YAML.
 
 ### Invoke the router
 
 The virtual model name is `vllm-sr/auto` (`vllm_sr_litellm_model_name` in `config.yaml`).
 
-**LiteLLM mode** (`auth_provider: litellm`). Replace `api.example.com` with your `base_domain_name`:
+With `auth_type: litellm_vkey`, call LiteLLM (default domain `inteltoolkits.ai`). Use a virtual key for apps; the master key is for install smoke tests only:
 
 ```bash
-curl -k https://litellm.api.example.com/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.${DOMAIN}:443:${GATEWAY_IP}" \
+  "https://litellm.${DOMAIN}/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
+  -H "Authorization: Bearer ${AGENT_TOOLKIT_API_KEY}" \
   -d '{
     "model": "vllm-sr/auto",
     "messages": [{"role": "user", "content": "write a hello world in python"}]
   }'
 ```
 
-Guardrails and Langfuse apply the same as any other LiteLLM call. In this release the router API is not published on its own host. Send `vllm-sr/auto` through LiteLLM.
+Set `DOMAIN` and `GATEWAY_IP` the same way as the [quickstart verify](../getting-started/quickstart.md#5-confirm-it-works). Guardrails and Langfuse apply the same as any other LiteLLM call. In this release the router API is not published on its own host. Send `vllm-sr/auto` through LiteLLM.
 
 ### Per-request selection
 
@@ -74,8 +76,8 @@ Guardrails and Langfuse apply the same as any other LiteLLM call. In this releas
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://litellm.api.example.com/v1",
-    api_key="<LITELLM_MASTER_KEY>",
+    base_url="https://litellm.inteltoolkits.ai/v1",  # or litellm.<base_domain_name>
+    api_key="<virtual-key>",  # not the LiteLLM master key
 )
 
 resp = client.chat.completions.create(
@@ -100,14 +102,16 @@ Apply a change with:
 ### Verify routing
 
 ```bash
-curl -k https://litellm.api.example.com/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.${DOMAIN}:443:${GATEWAY_IP}" \
+  "https://litellm.${DOMAIN}/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
+  -H "Authorization: Bearer ${AGENT_TOOLKIT_API_KEY}" \
   -d '{"model": "vllm-sr/auto",
        "messages": [{"role": "user", "content": "Write a Python function to reverse a linked list"}]}'
 ```
 
-In LiteLLM mode, open `https://langfuse.<base_domain_name>` and inspect the `model` field on each trace.
+Open `https://langfuse.<base_domain_name>` and inspect the `model` field on each trace.
 
 ---
 

@@ -4,7 +4,7 @@
 
 Guardrails screen each chat request with a small safety model **before** the main language model sees it. Unsafe prompts are blocked; safe prompts continue unchanged. Use them when the gateway is exposed to users whose prompts you do not control.
 
-Guardrails are not a separate installer target. They turn on with LiteLLM (`auth_provider: litellm` / `auth_type: litellm_vkey`) because LiteLLM hosts and runs the screening logic. To keep LiteLLM but skip screening, set `guardrails_enabled: false` in `env/local/config.agent-toolkit.yaml` (that file overrides `config.inference.yaml`). Two pieces work together:
+Guardrails are not a separate installer target. They turn on with LiteLLM (`auth_type: litellm_vkey`) because LiteLLM hosts and runs the screening logic. To keep LiteLLM but skip screening, set `guardrails_enabled: false` in `env/local/config.agent-toolkit.yaml` (that file overrides `config.inference.yaml`). Two pieces work together:
 
 | Piece | What it is |
 |---|---|
@@ -19,16 +19,14 @@ The guardrail is always registered as `content_safety`, whatever guard model is 
 
 Prerequisites:
 
-- `auth_provider: litellm`. LiteLLM holds the guardrail registration.
+- `auth_type: litellm_vkey`. LiteLLM holds the guardrail registration.
 - Free CPU and memory for the `qwen3guard` guard model (`cpu` and `memory` in its `models.yaml` entry).
 
-Set the provider in `env/local/global_config.yaml`, then install:
+Set API sign-in in `env/local/config.agent-toolkit.yaml`, then install:
 
 ```yaml
-# env/local/global_config.yaml
-auth_provider: litellm   # enables the content_safety guardrail (alt: keycloak)
-
-# env/local/config.agent-toolkit.yaml — optional override
+# env/local/config.agent-toolkit.yaml
+auth_type: litellm_vkey   # content_safety on with LiteLLM; set jwt for Keycloak without this guardrail
 # guardrails_enabled: false   # LiteLLM stays; screening off
 ```
 
@@ -40,9 +38,9 @@ auth_provider: litellm   # enables the content_safety guardrail (alt: keycloak)
 
 | Setting | Result |
 |---|---|
-| `auth_provider: litellm` (and `guardrails_enabled` left at default) | Every chat request is screened by `content_safety` before it reaches the main LLM. The `qwen3guard` model deploys from `models.yaml`, and the guardrail is registered as part of the agent-toolkit layer. |
+| `auth_type: litellm_vkey` (and `guardrails_enabled` left at default) | Every chat request is screened by `content_safety` before it reaches the main LLM. The `qwen3guard` model deploys from `models.yaml`, and the guardrail is registered as part of the agent-toolkit layer. |
 | `guardrails_enabled: false` with LiteLLM still on | Gateway and keys stay; no content moderation. |
-| `auth_provider: keycloak` (or any non-LiteLLM value) | The guardrail is not registered. The stack runs with no content moderation. |
+| `auth_type: jwt` | The content-safety guardrail is not registered with LiteLLM. |
 
 The install registers the guardrail and returns without waiting for the guard pod. Until that pod is `Running`, every screened request is blocked (see [Fail-closed behavior](#fail-closed-behavior)).
 
@@ -336,7 +334,7 @@ The step is an upsert, replacing the earlier create-if-absent behavior. Because 
 
 ## Next steps
 
-- [Configuration](configuration.md): `auth_provider: litellm` and `models.yaml`
+- [Configuration](configuration.md): `auth_type: litellm_vkey` and `models.yaml`
 - [Single-node quickstart](../getting-started/quickstart.md#3-choose-a-model): the `qwen3guard` catalog row
 - [Routing](routing.md): another LiteLLM feature on the same gateway
 - [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md): `finish_reason: content_filter`

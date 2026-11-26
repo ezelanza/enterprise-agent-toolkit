@@ -8,7 +8,7 @@ All of these come up with `install agent-toolkit` unless a section says otherwis
 
 ## LiteLLM (API gateway)
 
-Present when `auth_provider: litellm`. This is what browsers and `curl` hit from outside the cluster.
+Present when `auth_type: litellm_vkey`. This is what browsers and `curl` hit from outside the cluster.
 
 | | |
 |---|---|
@@ -139,7 +139,7 @@ The Service is ClusterIP. The port-forward is how an admin reaches it.
 
 ## Langfuse (traces)
 
-Present in `auth_provider: litellm` mode.
+Present when `auth_type: litellm_vkey`.
 
 | | |
 |---|---|

@@ -23,6 +23,7 @@ The CPU, RAM, and disk rows are the sizing. Catalog models set `require_amx: tru
 You also need:
 
 - `sudo` on the host that runs the installer
+- **No Docker on cluster nodes.** Cluster installs use containerd. Uninstall Docker before you run Toolkit Manager (it will not install while `docker.service` is present); Kubespray also deletes Docker and `/var/lib/docker` on those nodes. See [Toolkit Manager prerequisites](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/prerequisites.md). The [Docker Compose](../deployment/docker.md) path is separate and does not use Toolkit Manager.
 - Network access to pull container images and Helm charts
 - A [Hugging Face](https://huggingface.co) token with read access when a model is gated (Llama, Gemma). The default `qwen2-5-coder-14b` is not gated.
 
@@ -85,47 +86,47 @@ The gateway is HTTPS. Browsers and `curl` need a name that matches the certifica
 
 ### Development (one server)
 
-Map the names to this host. The default `gateway_tls_mode: selfsigned` creates the certificate during install, so step 1 is all you need. Step 2 applies only if you want to supply your own certificate.
+The default `gateway_tls_mode: selfsigned` creates the certificate during install.
 
-1. Add `/etc/hosts` entries. Use `127.0.0.1` if you only call the API on this server, or the node's private IP (`hostname -I`) if other hosts will call it:
+**Install smoke test (curl).** You do not need `/etc/hosts` yet. The [quickstart verify](quickstart.md#5-confirm-it-works) calls the gateway with `--resolve` and `--cacert` once the LoadBalancer IP exists.
 
-   ```bash
-   # Replace <GATEWAY_IP> with the LoadBalancer IP from the quickstart verify step
-   # (kubectl get svc ... loadBalancer.ingress). 127.0.0.1 works only for local curl
-   # before that IP exists. If you changed base_domain_name, use that domain here.
-   sudo bash -c 'cat >> /etc/hosts <<EOF
-   <GATEWAY_IP> litellm.inteltoolkits.ai
-   <GATEWAY_IP> langfuse.inteltoolkits.ai
-   <GATEWAY_IP> keycloak.inteltoolkits.ai
-   <GATEWAY_IP> grafana.inteltoolkits.ai
-   <GATEWAY_IP> ray.inteltoolkits.ai
-   <GATEWAY_IP> vllm-sr.inteltoolkits.ai
-   EOF'
-   ```
+**Browsers and other machines.** After install, map the hostnames to the gateway IP (from `kubectl get svc` in the verify step). If you changed `base_domain_name`, use that domain here:
 
-2. Optional: generate your own certificate instead of using `selfsigned`. OpenSSL 1.1.1 or later is required for `-addext`:
+```bash
+# Replace <GATEWAY_IP> with the LoadBalancer IP from the quickstart verify step.
+sudo bash -c 'cat >> /etc/hosts <<EOF
+<GATEWAY_IP> litellm.inteltoolkits.ai
+<GATEWAY_IP> langfuse.inteltoolkits.ai
+<GATEWAY_IP> keycloak.inteltoolkits.ai
+<GATEWAY_IP> grafana.inteltoolkits.ai
+<GATEWAY_IP> ray.inteltoolkits.ai
+<GATEWAY_IP> vllm-sr.inteltoolkits.ai
+EOF'
+```
 
-   ```bash
-   DOMAIN="inteltoolkits.ai"   # or your base_domain_name
-   mkdir -p ~/certs && cd ~/certs && \
-   openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
-     -subj "/CN=${DOMAIN}" \
-     -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:ray.${DOMAIN}, DNS:vllm-sr.${DOMAIN}"
-   ```
+Optional: generate your own certificate instead of using `selfsigned`. OpenSSL 1.1.1 or later is required for `-addext`:
 
-   That writes `cert.pem` and `key.pem`. After `init`, set them in `env/local/global_config.yaml`:
+```bash
+DOMAIN="inteltoolkits.ai"   # or your base_domain_name
+mkdir -p ~/certs && cd ~/certs && \
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
+  -subj "/CN=${DOMAIN}" \
+  -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:ray.${DOMAIN}, DNS:vllm-sr.${DOMAIN}"
+```
 
-   ```yaml
-   gateway_tls_mode: custom
-   gateway_tls_cert_file: /home/<user>/certs/cert.pem
-   gateway_tls_key_file: /home/<user>/certs/key.pem
-   ```
+That writes `cert.pem` and `key.pem`. After `init`, set them in `env/local/global_config.yaml`:
+
+```yaml
+gateway_tls_mode: custom
+gateway_tls_cert_file: /home/<user>/certs/cert.pem
+gateway_tls_key_file: /home/<user>/certs/key.pem
+```
 
 If you add more hostnames later, regenerate the cert with extra `DNS:` entries.
 
 ## Next steps
 
-When SSH and `/etc/hosts` (or DNS) are in place, continue with the **[single-node quickstart](quickstart.md)** to install and send a chat request.
+When SSH is in place (and DNS or `/etc/hosts` for production), continue with the **[single-node quickstart](quickstart.md)** to install and send a chat request. Add `/etc/hosts` for browsers after the gateway IP exists.
 
 If this host cannot reach the internet directly, set the proxy keys in [corporate proxy](../deployment/proxy.md) before you run `install`. For more than one server, use [multi-node deployment](../deployment/multi-node.md). [Meet the Agent Toolkit](../overview/meet.md) is the overview of what you are about to install; [Configuration](../configuration/configuration.md) lists every YAML field you can change later. Terms: [glossary](../reference/glossary.md).
 

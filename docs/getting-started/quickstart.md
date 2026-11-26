@@ -44,7 +44,7 @@ Already have a cluster? Set `existing_kubernetes: /path/to/kubeconfig` to skip b
 
 ### `env/local/config.agent-toolkit.yaml`: auth, model, and components
 
-`init` writes `auth_type: litellm_vkey` (LiteLLM gateway, Langfuse, guardrail). Leave it. Set `auth_type: jwt` only for Keycloak JWT on the AI gateway. Legacy `auth_provider` in `global_config.yaml` only warns; prefer `auth_type`.
+`init` writes `auth_type: litellm_vkey` so the LiteLLM gateway, Langfuse, and the content-safety guardrail come up together. Leave that for the first run. For Keycloak JWT on the AI gateway instead, set `auth_type: jwt` in this file. The old `auth_provider` key in `global_config.yaml` is deprecated; use `auth_type` only.
 
 The model list is `llm_services_autodeploy_models`. The default is `qwen2-5-coder-14b`. Redis, pgvector, and the sandbox are on. KubeRay is off:
 
@@ -104,7 +104,7 @@ This builds Kubernetes (unless you brought your own cluster with `existing_kuber
 
 ## 5. Confirm it works
 
-Same check as Toolkit Manager ([Agent Toolkit](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/agent-toolkit.md)): `--resolve` plus the installer CA, so the curl works from this host without relying on `/etc/hosts` for the smoke test.
+Same check as Toolkit Manager ([Agent Toolkit](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/agent-toolkit.md)): `--resolve` plus the installer CA. Browsers still need `/etc/hosts` (or DNS) after you have the gateway IP; see [Prerequisites](prerequisites.md#2-dns-and-tls).
 
 ```bash
 export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
@@ -156,21 +156,29 @@ Redis requires a password (the chart will not render without one). The Service i
 
 ## Optional: route simple vs complex prompts
 
-This release creates a `hybrid-router` model at install (`hybrid_router_enabled: true`). It sorts each request by complexity and sends it to one of the deployed chat models. It is not required for the Hello request above. Tiers and model lists: [Hybrid router](../configuration/hybrid-router.md).
+Send simple prompts to a smaller model and hard ones to a larger one without changing clients. This release creates a `hybrid-router` virtual model at install (`hybrid_router_enabled: true`). It is not required for the chat completion above. Full tier and bandit settings: [Hybrid router](../configuration/hybrid-router.md). Intent-based routing is in [Routing](../configuration/routing.md).
 
-Intent-based routing (and the other routing options) are in [Routing](../configuration/routing.md).
-
-You need at least two chat models plus the embedding model. Set them together:
+By default every tier points at the first entry in `llm_services_autodeploy_models` (`hybrid_router_tier_candidates`). Adding models to that list alone does not put them on the router. Set the tier lists yourself in `env/local/config.agent-toolkit.yaml` (or `config.inference.yaml`), deploy the models, then refresh LiteLLM with `litellm_reconcile` — an existing LiteLLM release keeps its old settings until you do:
 
 ```yaml
 llm_services_autodeploy_models: ["qwen2-5-coder-14b", "bge-base-en", "qwen3-coder-30b"]
+hybrid_router_default_model: qwen2-5-coder-14b
+hybrid_router_tier_candidates:
+  SIMPLE: ["qwen2-5-coder-14b"]
+  MEDIUM: ["qwen2-5-coder-14b", "qwen3-coder-30b"]
+  COMPLEX: ["qwen3-coder-30b"]
+  REASONING: ["qwen3-coder-30b"]
 ```
 
-Re-run `./toolkit_manager.sh install agent-toolkit`. Models deployed after the first install join the hybrid router on that re-run. Call `"model": "hybrid-router"`. Check which model ran in Langfuse at `https://langfuse.<base_domain_name>`.
+```bash
+./toolkit_manager.sh install agent-toolkit -- -e litellm_reconcile=true
+```
+
+Call `"model": "hybrid-router"`. Which real model answered shows in Langfuse at `https://langfuse.<base_domain_name>`.
 
 ## Next steps
 
-Once Hello works, most people either change which models are served or point an application at the in-cluster backends:
+Once a chat completion succeeds, most people either change which models are served or point an application at the in-cluster backends:
 
 - Build a LangChain agent on the gateway and trace it in Langfuse: [Build your first agent](first-agent.md).
 - Edit the YAML under `env/local/` using [Configuration](../configuration/configuration.md).

@@ -30,7 +30,7 @@ A host that has joined the Kubernetes cluster. A single-node install is one host
 
 ## Gateway
 
-The HTTPS front door your application calls. In `auth_provider: litellm` mode that is LiteLLM. It speaks the OpenAI API: `/v1/chat/completions`, `/v1/models`, and so on. URLs and the master key: [Backend connection reference](backend-connections.md).
+The HTTPS front door your application calls. With `auth_type: litellm_vkey` that is LiteLLM (`https://litellm.<base_domain_name>/v1`). It speaks the OpenAI API: `/v1/chat/completions`, `/v1/models`, and so on. Apps use a virtual key; the master key is for install smoke tests. URLs: [Backend connection reference](backend-connections.md).
 
 ## Gated model
 
@@ -38,7 +38,7 @@ A Hugging Face model you cannot download until you accept its license and pass a
 
 ## Idempotent install
 
-Running `./toolkit_manager.sh install agent-toolkit` again does not start from scratch. Toolkit components that are already installed are skipped: the check is whether the release exists, not whether it is healthy. Use it to resume a failed run. A changed setting for Redis, pgvector, the sandbox, or KubeRay does not take effect on a re-run: see [Decommission and redeploy](../deployment/decommission.md). See the [single-node quickstart](../getting-started/quickstart.md#4-install).
+Running `./toolkit_manager.sh install agent-toolkit` again does not start from scratch. Use it to resume a failed run or to apply YAML changes: the toolkit roles (Redis, pgvector, sandbox, KubeRay, OpenShell) upgrade on every run. See the [single-node quickstart](../getting-started/quickstart.md#4-install).
 
 ## Inference layer
 
@@ -58,7 +58,7 @@ Open-source proxy that presents many model backends as one OpenAI-compatible API
 
 ## Master key
 
-The LiteLLM admin token. Stored in the Kubernetes secret `litellm-master-key` in namespace `litellm`. Your first `curl` uses this key. Do not put it in git. How to read it: [Backend connection reference](backend-connections.md) and [FAQ: Where is the API key?](../faq-and-troubleshooting/frequently-asked-questions.md#api-key).
+The LiteLLM admin token. Stored in the Kubernetes secret `litellm-master-key` in namespace `litellm`. Use it for the install smoke test and to create virtual keys. Do not put it in application code or in git. How to read it: [Backend connection reference](backend-connections.md) and [FAQ: Where is the API key?](../faq-and-troubleshooting/frequently-asked-questions.md#api-key). For agents, create a virtual key: [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model).
 
 ## pgvector
 
@@ -68,9 +68,9 @@ A PostgreSQL extension that stores embedding vectors next to ordinary rows. Used
 
 Kubernetes, storage, mesh, identity, Prometheus / Grafana. Installed first. You need it before inference or the toolkit can run. See [What install brings up](../overview/meet.md#what-install-brings-up).
 
-## Provider block
+## Component
 
-One capability (gateway, memory, sandbox, …) with a default implementation you can replace later. You can run all defaults. You do not have to swap anything. See [Meet the Agent Toolkit](../overview/meet.md#toolkit-components).
+One piece of the stack (gateway, memory, sandbox, and so on) with a default you can run immediately and replace later. See [Toolkit components](../overview/meet.md#toolkit-components).
 
 ## RAG (Retrieval-Augmented Generation)
 

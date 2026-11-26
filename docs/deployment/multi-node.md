@@ -97,12 +97,12 @@ The files under `env/local/` are the same ones the [quickstart](../getting-start
 ```yaml
 # env/local/global_config.yaml
 base_domain_name: inteltoolkits.ai
-auth_type: litellm_vkey
 storage_backend: ceph
 ```
 
 ```yaml
 # env/local/config.agent-toolkit.yaml
+auth_type: litellm_vkey
 llm_services_autodeploy_models: ["qwen2-5-coder-14b"]
 ```
 

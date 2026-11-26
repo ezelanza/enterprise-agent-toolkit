@@ -2,11 +2,20 @@
 
 [← Docs index](../README.md)
 
-The hybrid router exposes a virtual model, `hybrid-router`, on the LiteLLM gateway. This release creates it at install (`hybrid_router_enabled: true` in `config.yaml`). For each request it classifies how complex the prompt is, then sends it to a smaller or larger deployed model for that tier. Within a tier, it learns over time which candidate model has the best latency and throughput. Clients keep calling one model name.
+Call one name, `"model": "hybrid-router"`, and let the stack send simple prompts to a smaller model and hard ones to a larger model. This release creates that virtual model at install (`hybrid_router_enabled: true` in `config.agent-toolkit.yaml`). It runs with `auth_type: litellm_vkey`. Set tier lists in `hybrid_router_tier_candidates` (see the [quickstart optional section](../getting-started/quickstart.md#optional-route-simple-vs-complex-prompts)). Intent-based routing is in [Routing](routing.md).
 
-Use it when you serve several models of different sizes and want simple prompts to go to the small ones without changing clients. It applies with `auth_provider: litellm`. The LiteLLM image is not rebuilt: the router code is mounted from a ConfigMap.
+```bash
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.${DOMAIN}:443:${GATEWAY_IP}" \
+  "https://litellm.${DOMAIN}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${AGENT_TOOLKIT_API_KEY}" \
+  -d '{"model": "hybrid-router",
+       "messages": [{"role": "user", "content": "Write a Python hello world"}],
+       "max_tokens": 100}'
+```
 
-Intent-based routing is in [Routing](routing.md). Use one mechanism per virtual model name.
+Use a virtual key for apps. Which real model answered shows in Langfuse. The sections below cover classification, bandit settings, and how the router mounts into LiteLLM.
 
 ## How it works
 
@@ -91,7 +100,13 @@ With the toggle on, the `litellm` role (`tasks/hybrid_router_setup.yaml`):
 
 4. Registers the `hybrid-router` virtual model from the `hybrid_router_*` settings below.
 
-LiteLLM is install-once. On a cluster where LiteLLM is already running, run `helm uninstall litellm -n litellm`, then `./toolkit_manager.sh install inference` again. A fresh install picks the router up directly.
+A fresh install picks the router up directly. On a cluster where LiteLLM is already running, change the `hybrid_router_*` settings and re-run with `litellm_reconcile` so the release picks them up:
+
+```bash
+./toolkit_manager.sh install agent-toolkit -- -e litellm_reconcile=true
+```
+
+(or set `litellm_reconcile: true` in `config.agent-toolkit.yaml` / `config.inference.yaml`).
 
 ## 2. Configure tiers and the bandit
 
@@ -168,7 +183,7 @@ export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d)
 
 # Or use the in-cluster endpoint http://litellm.litellm.svc.cluster.local:4000
-curl -k https://<base_domain_name>/model/new \
+curl -k https://litellm.<base_domain_name>/model/new \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -203,7 +218,7 @@ curl -k https://<base_domain_name>/model/new \
 ## 4. Test
 
 ```bash
-curl -k https://<base_domain_name>/v1/chat/completions \
+curl -k https://litellm.<base_domain_name>/v1/chat/completions \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"model": "hybrid-router", "messages": [{"role": "user", "content": "What is 2+2?"}]}'
@@ -238,15 +253,11 @@ Open the `inference` project. Under **Tracing**, select the latest `litellm_requ
 
 ### LiteLLM UI
 
-The UI is `https://litellm.<base_domain_name>/ui`. The gateway IP has to be in `/etc/hosts` for that name. Without that entry, port-forward and open `http://localhost:4000/ui`:
-
-```bash
-kubectl port-forward -n litellm svc/litellm 4000:4000
-```
+The UI is `https://litellm.<base_domain_name>/ui`. Browsers need that name in DNS or `/etc/hosts` (smoke-test curls can use `--resolve` instead; see [Prerequisites](../getting-started/prerequisites.md#2-dns-and-tls)).
 
 The username is `admin`. The password is `LITELLM_MASTER_KEY`. Models deployed with `./toolkit_manager.sh install` are listed under **Models+Endpoints** → **All Models**, including `bge-base-en` when that catalog name is in `llm_services_autodeploy_models`.
 
-This release creates `hybrid-router` at install (`hybrid_router_enabled: true`). There is no UI step to create it. Models deployed later join it when you re-run `./toolkit_manager.sh install agent-toolkit`.
+This release creates `hybrid-router` at install (`hybrid_router_enabled: true`). There is no UI step to create it. New models join a tier only when you list them in `hybrid_router_tier_candidates` and re-run install with `litellm_reconcile=true` (defaults keep every tier on the default model alone).
 
 If a second model fails with `NRI pre-flight failed: not enough physical cores`, set an explicit `cpu:` in `models.yaml` ([Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md)), undeploy the first model, and install again:
 

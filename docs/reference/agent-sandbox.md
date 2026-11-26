@@ -55,7 +55,7 @@ After `./toolkit_manager.sh init agent-toolkit`, set these in `env/local/config.
 | `agent_sandbox_python_warm_pool_name` | `python-pool` | Name of the default warm pool. |
 | `agent_sandbox_python_warm_pool_size` | `5` | Pre-warmed pods kept ready for the first call. Uses node CPU and memory on install. `0` creates no warm pool. |
 
-Cluster-wide settings that also apply (`auth_provider`, `base_domain_name`, `gateway_tls_mode`) are in `env/local/global_config.yaml`. See [Configuration](../configuration/configuration.md).
+Cluster-wide settings that also apply (`base_domain_name`, `gateway_tls_mode`) are in `env/local/global_config.yaml`. API sign-in is `auth_type` in `config.agent-toolkit.yaml`. See [Configuration](../configuration/configuration.md).
 
 <a id="router-token"></a>
 
