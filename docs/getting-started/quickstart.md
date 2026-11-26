@@ -2,38 +2,36 @@
 
 [← Docs index](../README.md)
 
-This walkthrough installs the Agent Toolkit on **one host**: a single machine, physical or virtual, running on Intel® hardware. That host is the only Kubernetes node. When it finishes, you have a cluster, a model behind LiteLLM, and an OpenAI-compatible API you can call with `curl` or any OpenAI SDK.
+This walkthrough installs the Agent Toolkit on **one host**: a single machine, physical or virtual, running on Intel® Platforms. That host is the only Kubernetes node. When it finishes, you have a cluster, a model behind LiteLLM, and an OpenAI-compatible API you can call with `curl` or any OpenAI SDK.
 
 Complete **[Prerequisites](prerequisites.md)** first so SSH and `/etc/hosts` (or DNS) are already in place. No certificate is needed: the installer generates one. If you have more than one host, stop here and use [multi-node deployment](../deployment/multi-node.md) instead: the YAML is the same, but the inventory is not.
 
 Run every command from the [Toolkit Manager](https://github.com/intel/toolkit-manager) directory, the one that contains `toolkit_manager.sh`.
 
-## 1. Prepare the host and seed config
+## 1. Install Toolkit Manager and seed config
 
 ```bash
-git clone -b release-2.0 https://github.com/intel/toolkit-manager.git
+git clone https://github.com/intel/toolkit-manager.git
 cd toolkit-manager
 ./toolkit_manager.sh configure
 ./toolkit_manager.sh init agent-toolkit     # writes env/local/
 ```
 
-`init` is the step that creates the YAML you will edit. It is not the install.
+`init` creates the YAML you edit next. It is not the install.
 
 ## 2. Edit the environment files
 
 All live config is under `env/local/`. Change those files, not the copies in git.
 
-### `env/local/global_config.yaml`: name and auth
+### `env/local/global_config.yaml`: domain
 
 ```yaml
 base_domain_name: api.example.com
-auth_provider: litellm
 ```
 
 | Field | What it means |
 |---|---|
 | `base_domain_name` | Hostname of the gateway. Must match DNS or `/etc/hosts`. |
-| `auth_provider: litellm` | Use LiteLLM as the API gateway. Agent Toolkit installs with this value so LiteLLM issues the master key used in step 5 and turns on Langfuse traces and the content-safety guardrail. Set `keycloak` only if you want Keycloak JWT in front of the AI gateway instead. |
 
 Leave these two at their defaults:
 
@@ -44,11 +42,14 @@ Leave these two at their defaults:
 
 Already have a cluster? Set `existing_kubernetes: /path/to/kubeconfig` to skip building Kubernetes.
 
-### `env/local/config.agent-toolkit.yaml`: which model, and optional Ray
+### `env/local/config.agent-toolkit.yaml`: auth, model, and components
+
+`init` writes `auth_type: litellm_vkey` (LiteLLM gateway, Langfuse, guardrail). Leave it. Set `auth_type: jwt` only for Keycloak JWT on the AI gateway. Legacy `auth_provider` in `global_config.yaml` only warns; prefer `auth_type`.
 
 The model list is `llm_services_autodeploy_models`. The default is `qwen2-5-coder-14b`. Redis, pgvector, and the sandbox are on. KubeRay is off:
 
 ```yaml
+auth_type: litellm_vkey
 llm_services_autodeploy_models: ["qwen2-5-coder-14b"]
 redis_stack_enabled: true
 pgvector_enabled: true
@@ -88,7 +89,7 @@ Set `llm_services_autodeploy_models` to one or more names from this table. Do no
 
 A `-specdec` name deploys that model with a smaller draft model. The draft is configured for you. The chat `"model"` value keeps the suffix, for example `qwen3-coder-30b-specdec`.
 
-The default model requests about 96 GiB, and the rest of a default install (guard model, router, platform) brings the total to about 131 GiB. On a 128 GB node, use `qwen2-5-coder-7b` or `llama-3-1-8b` instead. Per-model CPU and memory live in `env/local/models.yaml`. See [CPU model configuration](../configuration/xeon-models.md).
+The default model requests about 96 GiB, and the rest of a default install (guard model, router, platform) brings the total to about 131 GiB. On a 128 GB node, use `qwen2-5-coder-7b` or `llama-3-1-8b` instead. Per-model CPU and memory live in `env/local/models.yaml`. To add or size a model, see [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
 
 On a node with one NUMA node, `cpu: auto` on the default model can leave no cores for a second model. `./model-manager deploy` then stops with `NRI pre-flight failed: not enough physical cores`. Set an explicit `cpu:` for the first model, or undeploy it with `./model-manager undeploy <name>` before deploying another. `model-manager` is in the Toolkit Manager checkout, next to `toolkit_manager.sh`.
 
@@ -132,7 +133,7 @@ Use the `id` from `/v1/models` as `"model"`. For the default install that id is 
 
 The master key lives in secret `litellm-master-key` (namespace `litellm`). Inside the LiteLLM pod it is `PROXY_MASTER_KEY`. The in-cluster service is `litellm.litellm.svc.cluster.local:4000`.
 
-`-k` skips TLS verification, because the certificate is signed by the installer's own CA. To verify it instead, replace `-k` with `--cacert env/local/logs/ai-solutions-ca.crt`, the root CA the installer exports. Production should use a CA-issued certificate.
+`-k` skips TLS verification, because the certificate is signed by the installer's own CA. To verify it instead, replace `-k` with `--cacert env/local/logs/toolkit-manager-ca.crt`, the root CA the installer exports. Production should use a CA-issued certificate.
 
 ## What also came up
 
@@ -167,6 +168,6 @@ Once Hello works, most people either change which models are served or point an 
 - Build a LangChain agent on the gateway and trace it in Langfuse: [Build your first agent](first-agent.md).
 - Edit the YAML under `env/local/` using [Configuration](../configuration/configuration.md).
 - Copy Redis, pgvector, and sandbox URLs from the [backend connection reference](../reference/backend-connections.md).
-- Turn on content-safety screening in [Guardrails](../configuration/guardrails.md), or Ray jobs in [KubeRay](../reference/kuberay.md).
+- Tune or turn off content-safety screening in [Guardrails](../configuration/guardrails.md), or turn on Ray jobs in [KubeRay](../reference/kuberay.md).
 - Add another server with [multi-node deployment](../deployment/multi-node.md), or [tear the stack down](../deployment/decommission.md) and install again.
 - Optional routing choices are in [Routing](../configuration/routing.md). Common questions: [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md). Terms: [glossary](../reference/glossary.md). Failures: [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).

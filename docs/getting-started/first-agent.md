@@ -4,14 +4,15 @@
 
 This guide builds a LangChain agent that calls the model through the Agent Toolkit gateway and uses a tool. When it finishes, you have a working agent script, and Langfuse shows each model request the agent made.
 
-Complete the [single-node quickstart](quickstart.md) first. The agent uses the same gateway, model, and master key.
+Complete the [single-node quickstart](quickstart.md) first. The agent uses the same gateway and model. Give it a LiteLLM **virtual key**, not the master key (the master key is LiteLLM admin only).
 
 ## Before you begin
 
 | Requirement | Detail |
 |---|---|
-| A working install | The quickstart test returns a chat completion. |
-| `auth_provider: litellm` | LiteLLM provides the API key and sends gateway traces to Langfuse. |
+| A working install | The quickstart verify curls return a chat completion. |
+| `auth_type: litellm_vkey` | LiteLLM issues keys and sends gateway traces to Langfuse (the `init` default). |
+| A LiteLLM virtual key | Create one before you run the agent: [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model) in Toolkit Manager. |
 | A model with tool calling | The examples use `qwen2-5-coder-14b`, the quickstart model. Llama 3.1 8B does not support parallel tool calls. |
 | Python 3.10 or later | On the install host, or on a machine whose `/etc/hosts` maps the gateway hostnames to the host's IP. |
 
@@ -24,22 +25,20 @@ python3 -m venv ~/first-agent && source ~/first-agent/bin/activate
 pip install "langchain>=1.0,<2" "langchain-openai>=1.0,<2"
 ```
 
-Set the connection variables. Run the `kubectl` and `cp` commands from the Toolkit Manager directory:
+Set the connection variables. Run the `cp` from the Toolkit Manager directory. Paste the virtual key you created (not the master key from the secret):
 
 ```bash
 export AGENT_TOOLKIT_BASE_URL=https://litellm.api.example.com/v1   # https://litellm.<base_domain_name>/v1
+export AGENT_TOOLKIT_API_KEY=sk-...                                 # LiteLLM virtual key
 
-export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
-  -o jsonpath='{.data.master_key}' | base64 -d)
-
-cp env/local/logs/ai-solutions-ca.crt ~/first-agent/ca.crt
+cp env/local/logs/toolkit-manager-ca.crt ~/first-agent/ca.crt
 export SSL_CERT_FILE=~/first-agent/ca.crt
 ```
 
 | Variable | Purpose |
 |---|---|
 | `AGENT_TOOLKIT_BASE_URL` | The OpenAI-compatible endpoint of the gateway. |
-| `LITELLM_MASTER_KEY` | The API key the agent sends to the gateway. |
+| `AGENT_TOOLKIT_API_KEY` | The LiteLLM virtual key the agent sends to the gateway. |
 | `SSL_CERT_FILE` | Trusts the root CA the installer generated (`gateway_tls_mode: selfsigned`). |
 
 Set `SSL_CERT_FILE` **after** `pip install`. It replaces the default trust store, so `pip` can no longer reach PyPI while it is set. With a CA-issued certificate, omit it.
@@ -65,7 +64,7 @@ def multiply(a: float, b: float) -> float:
 llm = ChatOpenAI(
     model="qwen2-5-coder-14b",
     base_url=os.environ["AGENT_TOOLKIT_BASE_URL"],
-    api_key=os.environ["LITELLM_MASTER_KEY"],
+    api_key=os.environ["AGENT_TOOLKIT_API_KEY"],
     temperature=0,
 )
 
@@ -113,14 +112,14 @@ Each trace shows the prompt, the completion, token counts, latency, and the mode
 | `SSL: CERTIFICATE_VERIFY_FAILED` | `SSL_CERT_FILE` is not set in this shell, or points to the wrong file. Repeat the export commands from step 1. |
 | `pip` fails with a certificate error | `SSL_CERT_FILE` is set. Run `unset SSL_CERT_FILE`, install, then export it again. |
 | `Connection error` or `Could not resolve host` | The gateway hostname does not resolve on this machine. Add it to `/etc/hosts` as in the quickstart. |
-| `401` from the gateway | `LITELLM_MASTER_KEY` is not set in this shell. Repeat the export command. |
+| `401` from the gateway | `AGENT_TOOLKIT_API_KEY` is missing or is the master key used as if it were a virtual key. Export a virtual key from [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model). |
 | Langfuse shows one trace instead of two | The model answered without calling the tool. Run again, or ask for a calculation the model is less likely to answer directly. |
 | `tool_choice` or tool-call errors from the gateway | The served model is not configured for tool calling. Use a model that supports it. |
 
 ## Next steps
 
 - Connect the agent to session memory, the vector store, or the code sandbox using the URLs in the [backend connection reference](../reference/backend-connections.md).
-- Screen prompts before they reach the model with [Guardrails](../configuration/guardrails.md).
+- Tune or turn off content-safety screening in [Guardrails](../configuration/guardrails.md).
 - Send the agent to several models through one name with [Routing](../configuration/routing.md).
 - Serve other models by editing `models.yaml`, described in [Configuration](../configuration/configuration.md).
 - Terms: [glossary](../reference/glossary.md). Failures: [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).

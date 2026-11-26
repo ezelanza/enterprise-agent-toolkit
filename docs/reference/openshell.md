@@ -129,7 +129,7 @@ openshell_enabled: true
 
 `openshell_enabled: true` requires `agent_sandbox_enabled: true` in the same run, or agent-sandbox CRDs already on the cluster. Otherwise the deployment exits before it installs anything.
 
-When OpenShell is on, `config.agent-toolkit.yaml` also sets `litellm_allow_pod_network: true` (templated from `openshell_enabled`). Sandboxes sit outside the Istio mesh, so LiteLLM must admit API calls from the pod network on its service port; sandboxes still use the minted virtual key. On a bring-your-own cluster, set `pods_cluster_cidr` in `global_config.yaml` to that cluster’s pod CIDR. Add any ambient-labelled agent namespace to `litellm_allowed_namespaces` (defaults already include the gateway, LiteLLM, agent-sandbox, and KubeRay namespaces).
+When OpenShell is on, `config.agent-toolkit.yaml` also sets `litellm_allow_pod_network: true` (templated from `openshell_enabled`). Sandboxes sit outside the Istio mesh, so LiteLLM must admit API calls from the pod network on its service port; sandboxes still use the minted virtual key. On a bring-your-own cluster, set `kubernetes_cluster_cidr` in `global_config.yaml` to that cluster’s pod CIDR. Add any ambient-labelled agent namespace to `litellm_allowed_namespaces` (defaults already include the gateway, LiteLLM, agent-sandbox, and KubeRay namespaces).
 
 Resume mode, which would skip OpenShell when the release is already `deployed` at the current pins, is not available in this release. Re-run `./toolkit_manager.sh install agent-toolkit` to apply a change.
 

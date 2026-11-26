@@ -9,7 +9,7 @@ Problems you hit while installing or calling the API. If the error is specific t
 | What you see | What to try |
 |---|---|
 | `toolkit_manager.sh: No such file or directory` | You are in this toolkit repo. `cd` to Toolkit Manager and run the commands from that root. It installs, updates, and tears the toolkit down. [Meet the Agent Toolkit](../overview/meet.md) · [FAQ](frequently-asked-questions.md#where-installer) |
-| SSH connection refused during Kubespray | Check inventory IPs and the key path in `env/local/inventory/hosts.yaml`. Confirm passwordless SSH from the installer host. [Prerequisites](../getting-started/prerequisites.md#1-ssh-keys) |
+| SSH connection refused during Kubespray | Check node IPs and the SSH key in `env/local/nodes.yaml` (the installer regenerates `inventory/hosts.yaml` from it). Confirm passwordless SSH from the installer host. [Prerequisites](../getting-started/prerequisites.md#1-ssh-keys) |
 | Node `NotReady` | On that node, run `systemctl status kubelet` and inspect the kubelet journal. |
 | Pods stuck `Pending` | `kubectl describe pod -n <ns> <pod>` and `kubectl describe node`: usually CPU, RAM, or a taint that blocks scheduling. |
 | vLLM stays `ContainerCreating` / `Init` | Weights are still downloading. 10–15 minutes is normal. Follow progress with `kubectl logs -n <ns> <pod>`. |

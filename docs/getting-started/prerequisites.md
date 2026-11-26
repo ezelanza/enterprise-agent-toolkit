@@ -10,13 +10,13 @@ These are the host minimums for a working install. A default install with `qwen2
 
 | Requirement | Minimum | Comfortable |
 |---|---|---|
-| **CPU** | 48 cores, x86_64 | 96+ cores |
+| **CPU** | 48 cores, x86_64 with Intel® AMX (4th Gen Intel® Xeon® Scalable processors or newer) | 96+ cores |
 | **RAM** | 128 GB (with a smaller chat model) | 160 GB+ (default `qwen2-5-coder-14b`) |
 | **Disk** | 150 GB free | 200 GB |
 | **OS** | Ubuntu 22.04 or 24.04 | Ubuntu 22.04 LTS |
-| **Processor** | Intel® x86_64 | Intel® Xeon® processor (validated) |
+| **Processor** | Intel® Xeon® with AMX | Same family (validated) |
 
-The CPU, RAM, and disk rows are the sizing. The Intel® Xeon® processor family is what this default path is validated on. The OS can boot in far less RAM; the numbers above are for the stack plus a chat model.
+The CPU, RAM, and disk rows are the sizing. Catalog models set `require_amx: true` by default, so the model pod only schedules on AMX nodes; without AMX it stays `Pending` and the quickstart verify never answers. To opt out on older CPUs, set `require_amx: false` under `defaults:` in `env/local/models.yaml` after `init`. The OS can boot in far less RAM; the numbers above are for the stack plus a chat model.
 
 > Tensor-parallel models need more memory in the model pod: about 128 GiB for `tp1`/`tp2`, 256 GiB for `tp >= 4`.
 
@@ -40,53 +40,47 @@ sudo sysctl --system
 
 ## 1. SSH keys
 
-Log in as a **non-root** user with `sudo`. Do not run the installer as `root`. Password-only logins cause Ansible to fail later.
+Log in as a **non-root** user with `sudo`. Do not run the installer as `root`. The installer talks to every cluster node over SSH, including a single-node install (it SSHs to itself).
 
-The installer talks to every cluster node over SSH, including a single-node install (it SSHs to itself).
+On the host that runs the installer (single-node: this same machine):
 
-1. Create a key if you do not have one. Leave the passphrase empty when prompted:
+<!-- golden-path: expect "SSH OK" -->
+```bash
+[ -f ~/.ssh/id_rsa ] || ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes localhost true && echo "SSH OK"
+```
 
-   ```bash
-   ssh-keygen -t rsa -b 4096
-   ```
+Go on when that last command prints `SSH OK`. For several servers, put the same public key in `~/.ssh/authorized_keys` on every node and confirm passwordless login from the installer host:
 
-2. Put the **public** key on every node that will be in the cluster (control plane and workers):
+```bash
+ssh -i ~/.ssh/id_rsa <USERNAME>@<IP_ADDRESS>
+```
 
-   ```bash
-   echo "<contents of ~/.ssh/id_rsa.pub>" >> ~/.ssh/authorized_keys
-   chmod 600 ~/.ssh/authorized_keys
-   ```
+If you use a bastion, the installer host must still reach the nodes through it.
 
-3. From the host that will run the installer, confirm you can log in without a password:
-
-   ```bash
-   chmod 600 ~/.ssh/id_rsa
-   ssh -i ~/.ssh/id_rsa <USERNAME>@<IP_ADDRESS>
-   ```
-
-   If you use a bastion, the installer host must still reach the nodes through it.
-
-4. After `init`, the inventory is `env/local/inventory/hosts.yaml`. For one server, `init` already writes a localhost inventory: leave it. For several servers, replace it with the layout in [multi-node deployment](../deployment/multi-node.md#1-seed-config-then-list-every-node).
+After `init`, list machines in `env/<name>/nodes.yaml` (`nodes_control_plane`, `nodes_workers`). The installer regenerates `inventory/hosts.yaml` from that file on every run, so do not hand-edit `hosts.yaml` while `nodes.yaml` lists machines. For one server, leave the localhost defaults `init` wrote. For several servers, see [Install the platform](https://github.com/intel/toolkit-manager/blob/main/docs/deployment/install-platform.md) and [Multi-node](https://github.com/intel/toolkit-manager/blob/main/docs/deployment/multi-node.md) in Toolkit Manager (Agent Toolkit summary: [multi-node deployment](../deployment/multi-node.md#1-seed-config-then-list-every-node)).
 
 ## 2. DNS and TLS
 <a id="dns-and-ssltls"></a>
 
 The gateway is HTTPS. Browsers and `curl` need a name that matches the certificate.
 
-`base_domain_name` is that name. If you set it to `api.example.com`, these hostnames must resolve:
+`base_domain_name` is that name. Set it in Toolkit Manager `env/<name>/global_config.yaml` (default `inteltoolkits.ai`). With the default, these hostnames must resolve:
 
 | Hostname | What it is |
 |---|---|
-| `litellm.api.example.com` | LiteLLM UI and API |
-| `langfuse.api.example.com` | Langfuse tracing UI |
-| `ray.api.example.com` | Ray Dashboard when KubeRay is on. [KubeRay](../reference/kuberay.md) |
-| `vllm-sr.api.example.com` | vLLM Semantic Router dashboard. Not in this release |
-| `coding-agent-api.example.com` | Coding Agent UI. Not in this release |
+| `litellm.inteltoolkits.ai` | LiteLLM UI and API (`auth_type: litellm_vkey`) |
+| `langfuse.inteltoolkits.ai` | Langfuse tracing UI |
+| `keycloak.inteltoolkits.ai` | Keycloak admin and UI sign-in (`auth_type: jwt`) |
+| `grafana.inteltoolkits.ai` | Grafana dashboards |
+| `ray.inteltoolkits.ai` | Ray Dashboard when KubeRay is on. [KubeRay](../reference/kuberay.md) |
+| `vllm-sr.inteltoolkits.ai` | vLLM Semantic Router dashboard. Not in this release |
 
 ### Production
 
 - Point DNS (or a load balancer) at the control-plane IP.
-- Use a certificate from your CA that covers the base name **and** the subdomains (a wildcard `*.api.example.com`, or a multi-SAN cert).
+- Use a certificate from your CA that covers the base name **and** the subdomains (a wildcard `*.inteltoolkits.ai`, or a multi-SAN cert).
 - Plan renewal before expiry. Port 80 may need to be open if your CA uses HTTP validation.
 
 ### Development (one server)
@@ -96,26 +90,27 @@ Map the names to this host. The default `gateway_tls_mode: selfsigned` creates t
 1. Add `/etc/hosts` entries. Use `127.0.0.1` if you only call the API on this server, or the node's private IP (`hostname -I`) if other hosts will call it:
 
    ```bash
-   # Replace <GATEWAY_IP> with the IP from step 5 of the quickstart
+   # Replace <GATEWAY_IP> with the LoadBalancer IP from the quickstart verify step
    # (kubectl get svc ... loadBalancer.ingress). 127.0.0.1 works only for local curl
-   # before that IP exists.
+   # before that IP exists. If you changed base_domain_name, use that domain here.
    sudo bash -c 'cat >> /etc/hosts <<EOF
-   <GATEWAY_IP> litellm.api.example.com
-   <GATEWAY_IP> langfuse.api.example.com
-   <GATEWAY_IP> ray.api.example.com
-   <GATEWAY_IP> vllm-sr.api.example.com
-   127.0.0.1 coding-agent-api.example.com
+   <GATEWAY_IP> litellm.inteltoolkits.ai
+   <GATEWAY_IP> langfuse.inteltoolkits.ai
+   <GATEWAY_IP> keycloak.inteltoolkits.ai
+   <GATEWAY_IP> grafana.inteltoolkits.ai
+   <GATEWAY_IP> ray.inteltoolkits.ai
+   <GATEWAY_IP> vllm-sr.inteltoolkits.ai
    EOF'
    ```
 
 2. Optional: generate your own certificate instead of using `selfsigned`. OpenSSL 1.1.1 or later is required for `-addext`:
 
    ```bash
-   DOMAIN="api.example.com"
+   DOMAIN="inteltoolkits.ai"   # or your base_domain_name
    mkdir -p ~/certs && cd ~/certs && \
    openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
      -subj "/CN=${DOMAIN}" \
-     -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:vllm-sr.${DOMAIN}, DNS:coding-agent-${DOMAIN}"
+     -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:ray.${DOMAIN}, DNS:vllm-sr.${DOMAIN}"
    ```
 
    That writes `cert.pem` and `key.pem`. After `init`, set them in `env/local/global_config.yaml`:

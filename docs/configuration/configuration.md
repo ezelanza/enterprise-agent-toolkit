@@ -18,23 +18,23 @@ These are the files `init` writes under `env/local/`. Change the copies here; th
 
 | File | What it is for |
 |---|---|
-| `global_config.yaml` | Cluster-wide: domain, TLS, auth, storage, proxy, bring-your-own kubeconfig |
+| `global_config.yaml` | Cluster-wide: domain, TLS, storage, proxy, bring-your-own kubeconfig |
 | `config.inference.yaml` | Inference layer: which routers to install, and guardrail flags |
 | `models.yaml` | Catalog of model names, Hugging Face ids, CPU, and memory. Deploy with `llm_services_autodeploy_models` or `./model-manager deploy <name>` |
-| `config.agent-toolkit.yaml` | Toolkit knobs: which models to install, namespaces, Redis, pgvector, sandbox, optional KubeRay |
-| `inventory/hosts.yaml` | Which nodes are in the cluster |
+| `config.agent-toolkit.yaml` | Toolkit knobs: auth, models, namespaces, Redis, pgvector, sandbox, KubeRay |
+| `nodes.yaml` | Which nodes are in the cluster (`nodes_control_plane`, `nodes_workers`). Install regenerates `inventory/hosts.yaml` from it |
 
 ### `global_config.yaml`
 
 ```yaml
-auth_provider: litellm           # litellm | keycloak
 base_domain_name: api.example.com
 gateway_tls_mode: selfsigned     # selfsigned | custom
 # gateway_tls_mode: custom
 # gateway_tls_cert_file: /path/to/cert.pem
 # gateway_tls_key_file: /path/to/key.pem
 # existing_kubernetes: /path/to/kubeconfig   # omit to let the installer create Kubernetes
-storage_backend: local-path      # local-path | nfs | ceph
+storage_backend: local-path      # local-path | nfs | ceph | netapp-trident | custom
+# object_store_backend: seaweedfs # S3 store for Loki, Tempo, and Langfuse: seaweedfs | external
 # http_proxy: http://proxy.corporate.com:8080
 # https_proxy: http://proxy.corporate.com:8080
 # no_proxy: localhost,127.0.0.1,.svc,.cluster.local
@@ -42,24 +42,26 @@ storage_backend: local-path      # local-path | nfs | ceph
 
 | Setting | Effect |
 |---|---|
-| `auth_provider` | `litellm`: LiteLLM gateway, Langfuse traces, and the content-safety guardrail. `keycloak`: Keycloak in front of the AI gateway. |
 | `base_domain_name` | Public hostname of the API. Must match DNS/`/etc/hosts` and the certificate. |
 | `gateway_tls_mode` | `selfsigned` for a lab. `custom` plus cert/key paths for the cert from [Prerequisites](../getting-started/prerequisites.md). |
 | `existing_kubernetes` | Path to a kubeconfig if the cluster already exists. Omit to provision Kubernetes. |
-| `storage_backend` | Where PVCs go. `local-path` on one node; `nfs` or `ceph` on several. |
+| `storage_backend` | Where PVCs go. `local-path` on one node; `nfs`, `ceph`, `netapp-trident`, or `custom` on several. NetApp: [NetApp ONTAP](https://github.com/intel/toolkit-manager/blob/main/docs/deployment/netapp-ontap.md) in Toolkit Manager |
+| `object_store_backend` | S3 store for Loki, Tempo, and Langfuse. Default `seaweedfs`; use `external` for your own S3 endpoint |
 | `http_proxy` / `https_proxy` / `no_proxy` | [Corporate proxy](../deployment/proxy.md). `no_proxy` must include `.svc` and `.cluster.local`. |
-| `pods_cluster_cidr` | Pod CIDR of a bring-your-own cluster. Set this when OpenShell is on so LiteLLM can admit sandbox traffic from that range. |
+| `kubernetes_cluster_cidr` | Pod CIDR of a bring-your-own cluster. Set this when OpenShell is on so LiteLLM can admit sandbox traffic from that range. |
 
-#### `auth_provider` and `auth_type`
+#### API sign-in (`auth_type`)
 
-Toolkit Manager’s current sign-in knob is `auth_type` in the inference / agent-toolkit YAML (`jwt` or `litellm_vkey`). This repository still seeds and documents `auth_provider` in `global_config.yaml` for the same choice. Preflight maps them:
+Set `auth_type` in `config.agent-toolkit.yaml` (or `config.inference.yaml`). `init agent-toolkit` seeds `auth_type: litellm_vkey`. Leave that default for the LiteLLM gateway, Langfuse traces, and the content-safety guardrail. Set `auth_type: jwt` for Keycloak JWT on the Envoy AI gateway instead.
 
-| You want | Set in docs / `global_config.yaml` | Seeded / Toolkit Manager value |
-|---|---|---|
-| LiteLLM virtual keys (Agent Toolkit default) | `auth_provider: litellm` | `auth_type: litellm_vkey` (in `config.agent-toolkit.yaml`) |
-| Keycloak JWT on the AI gateway | `auth_provider: keycloak` | `auth_type: jwt` |
+| You want | Set |
+|---|---|
+| LiteLLM virtual keys (default) | `auth_type: litellm_vkey` |
+| Keycloak JWT on the AI gateway | `auth_type: jwt` |
 
-Keep one pair consistent. Agent Toolkit `init` seeds `auth_type: litellm_vkey` in `config.agent-toolkit.yaml`. That file loads **after** `config.inference.yaml`, so `guardrails_enabled`, `hybrid_router_enabled`, and the `litellm_*` keys here override the inference layer.
+`config.agent-toolkit.yaml` loads **after** `config.inference.yaml`, so `auth_type`, `guardrails_enabled`, `hybrid_router_enabled`, and the `litellm_*` keys here override the inference layer.
+
+Legacy: `auth_provider` in `global_config.yaml` (`litellm` / `keycloak`) only triggers a Toolkit Manager deprecation warning and is mapped to `auth_type`. Prefer `auth_type`; do not set both to conflicting values.
 
 ### `config.inference.yaml`
 
@@ -91,6 +93,7 @@ This file is the catalog. A name in `llm_services_autodeploy_models` must match 
 ### `config.agent-toolkit.yaml`
 
 ```yaml
+auth_type: litellm_vkey          # litellm_vkey | jwt
 llm_services_autodeploy_models: ["qwen2-5-coder-14b"]
 redis_stack_enabled: true
 pgvector_enabled: true
@@ -101,9 +104,9 @@ openshell_enabled: false
 
 | Setting | Default | Meaning |
 |---|---|---|
+| `auth_type` | `litellm_vkey` | API sign-in. Leave the default for LiteLLM; set `jwt` for Keycloak on the AI gateway |
 | `llm_services_autodeploy_models` | `["qwen2-5-coder-14b"]` | Models deployed during `install`. `[]` installs with no chat model. Deploy others later with `./model-manager deploy <name>` |
-| `auth_type` | `litellm_vkey` | API sign-in for this layer. Prefer leaving it; pair with `auth_provider` as in the table above |
-| `guardrails_enabled` | on when LiteLLM is on | Set `false` to keep LiteLLM but turn off content-safety screening. [Guardrails](guardrails.md) |
+| `guardrails_enabled` | on when `auth_type` is `litellm_vkey` | Set `false` to keep LiteLLM but turn off content-safety screening. [Guardrails](guardrails.md) |
 | `hybrid_router_enabled` | `true` | Creates the `hybrid-router` virtual model. Overrides the same key in `config.inference.yaml`. [Hybrid router](hybrid-router.md) |
 | `litellm_public_paths` | `[]` | Paths published on LiteLLM’s route. Empty means all paths (admin UI and key API stay LiteLLM-authenticated) |
 | `litellm_allow_pod_network` | follows `openshell_enabled` | When OpenShell is on, LiteLLM admits API calls from the pod network. [OpenShell](../reference/openshell.md) |
@@ -121,7 +124,7 @@ openshell_enabled: false
 | `kuberay_enabled` | `false` | Set `true` to install Ray. [KubeRay](../reference/kuberay.md) |
 | `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` | `true` | Set `false` to skip that component |
 | `openshell_enabled` | `false` | Policy layer on the agent sandbox. [OpenShell](../reference/openshell.md) |
-| `keycloak_agent_config_enabled` | on when `auth_provider` is not `litellm` | Creates the `agent-toolkit` realm on the platform Keycloak |
+| `keycloak_agent_config_enabled` | on by default | Creates the `agent-toolkit` realm on the platform Keycloak. The enable condition still keys off legacy `auth_provider` (unset counts as Keycloak), so the realm installs even when `auth_type` is `litellm_vkey`. Set `false` to skip it |
 | `keycloak_agent_realm` | `agent-toolkit` | Realm name |
 
 Source defaults (copied at `init`): `config.yaml` at the root of this repo.
@@ -145,7 +148,7 @@ The standalone stack stored flags in `agentic-config.cfg`. Toolkit Manager maps 
 | `deploy_redis` / `deploy_pgvector` / `deploy_agent_sandbox` | `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` |
 | `deploy_kuberay=on` | `kuberay_enabled: true` |
 | `deploy_llm_models`, `models=` | `llm_services_autodeploy_models`; `./model-manager deploy <name>` |
-| `deploy_guardrails=on` | `guardrails_enabled` (on when `auth_provider` is `litellm`) |
+| `deploy_guardrails=on` | `guardrails_enabled` (on when `auth_type` is `litellm_vkey`) |
 | `deploy_observability=on` | `observability_enabled` in `global_config.yaml` |
 | `deploy_vllm_sr` | `vllm_sr_enabled` in `config.inference.yaml` |
 | `cert_file` / `key_file` | `gateway_tls_mode: custom` + cert/key paths |
@@ -155,7 +158,7 @@ The standalone stack stored flags in `agentic-config.cfg`. Toolkit Manager maps 
 | `deploy_kubernetes_fresh` | Omit `existing_kubernetes` and the installer creates the cluster |
 | `vault.yml` | Removed: installer generates secrets |
 
-Not in this release: the Flowise plugin (`deploy_agenticai_plugin`), Intel® Arc™ GPU (`compute_platform` XPU and other GPU values), rack-scale networking, and `air_gapped`. The procedure is in [Intel® Arc™ GPU](../deployment/intel-arc.md). Kata Containers (`kata_containers_enabled`, `kata-fc` / `kata-qemu`) is a sandbox option and needs `agent_sandbox_enabled: true`. The steps are in [Agent sandbox](../reference/agent-sandbox.md#kata-containers). Docker Compose is a separate path: [Docker](../deployment/docker.md) uses `docker/deploy.sh`, not `./toolkit_manager.sh install`.
+In this release through Toolkit Manager: rack-scale fabric (`rack_scale_enabled`) and Intel® Arc™ GPUs (`./model-manager deploy … --server vllm-xpu`). See [Rack-scale](../deployment/rack-scale.md) and [Intel® Arc™ GPU](../deployment/intel-arc.md). Not in this release: the Flowise plugin (`deploy_agenticai_plugin`) and `air_gapped`. Kata Containers (`kata_containers_enabled`, `kata-fc` / `kata-qemu`) is a sandbox option and needs `agent_sandbox_enabled: true`. The steps are in [Agent sandbox](../reference/agent-sandbox.md#kata-containers). Docker Compose is a separate path: [Docker](../deployment/docker.md) uses `docker/deploy.sh`, not `./toolkit_manager.sh install`.
 
 ---
 

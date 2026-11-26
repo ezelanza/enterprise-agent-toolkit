@@ -40,7 +40,7 @@ In an environment created with `init agent-toolkit`, `./toolkit_manager.sh insta
 
 ### Run it on its own
 
-From the Toolkit Manager checkout, after `init agent-toolkit`. For several nodes, list them in `env/local/inventory/hosts.yaml` first. See [Multi-node deployment](../deployment/multi-node.md#1-seed-config-then-list-every-node).
+From the Toolkit Manager checkout, after `init agent-toolkit`. For several nodes, list them in `env/local/nodes.yaml` first (`hosts.yaml` is generated from it). See [Multi-node deployment](../deployment/multi-node.md#1-seed-config-then-list-every-node).
 
 ```bash
 export HF_TOKEN=<token>   # optional: also checks the token for gated models

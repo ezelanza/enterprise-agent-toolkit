@@ -248,7 +248,7 @@ The username is `admin`. The password is `LITELLM_MASTER_KEY`. Models deployed w
 
 This release creates `hybrid-router` at install (`hybrid_router_enabled: true`). There is no UI step to create it. Models deployed later join it when you re-run `./toolkit_manager.sh install agent-toolkit`.
 
-If a second model fails with `NRI pre-flight failed: not enough physical cores`, set an explicit `cpu:` in `models.yaml` ([CPU model configuration](xeon-models.md)), undeploy the first model, and install again:
+If a second model fails with `NRI pre-flight failed: not enough physical cores`, set an explicit `cpu:` in `models.yaml` ([Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md)), undeploy the first model, and install again:
 
 ```bash
 kubectl get llminferenceservices,inferenceservices -n llm-inference

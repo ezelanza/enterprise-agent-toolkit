@@ -30,10 +30,12 @@ The technical documentation for Intel® Agent Toolkit. Start with **Meet** for t
 | Guide | What it covers |
 |---|---|
 | [Multi-node](deployment/multi-node.md) | One control plane plus worker nodes |
+| [Rack-scale](deployment/rack-scale.md) | High-speed fabric via Toolkit Manager (`rack_scale_enabled`) |
+| [Intel® Arc™ GPU](deployment/intel-arc.md) | GPU serving via Toolkit Manager (`vllm-xpu`) |
 | [Docker Compose](deployment/docker.md) | Containers on one Linux host without Toolkit Manager |
 | [Decommission](deployment/decommission.md) | Tear the install down and install again |
 
-Behind a corporate proxy: [Corporate proxy](deployment/proxy.md). Related installs: [Inference Toolkit](https://github.com/intel/inference-toolkit) (`init inference`), [Chatbot Toolkit](https://github.com/intel/chatbot-toolkit) (`init erag`).
+Behind a corporate proxy: [Corporate proxy](deployment/proxy.md). Related installs: [Inference Toolkit](https://github.com/intel/inference-toolkit) (`init inference`), [Chatbot Toolkit](https://github.com/intel/chatbot-toolkit) (`init erag`). Model catalog and `./model-manager deploy`: [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
 
 ## Customize
 
@@ -42,9 +44,9 @@ Edit YAML under `env/local/` and re-run `install`.
 | Guide | What it covers |
 |---|---|
 | [Configuration](configuration/configuration.md) | Which YAML file holds each setting |
-| [CPU model configuration](configuration/xeon-models.md) | Choose, size, or add a model |
 | [Guardrails](configuration/guardrails.md) | Screen each prompt before the main model |
 | [Routing](configuration/routing.md) · [Hybrid router](configuration/hybrid-router.md) | Send a request to one of several models (hybrid is on by default) |
+| [vLLM semantic router](configuration/semantic-router.md) | Opt-in intent routing (`vllm_sr_enabled: true`) |
 
 ## Operate
 
@@ -62,7 +64,7 @@ Edit YAML under `env/local/` and re-run `install`.
 | [OpenShell](reference/openshell.md) | Policy around that code (off by default) |
 | [KubeRay](reference/kuberay.md) | Ray jobs in the cluster (off by default) |
 
-Guides not installed in this release: [Rack-scale](deployment/rack-scale.md), [Intel® Arc™ GPU](deployment/intel-arc.md), [vLLM semantic router](configuration/semantic-router.md). To report a bug or change the toolkit, see [Contributing](../CONTRIBUTING.md).
+To report a bug or change the toolkit, see [Contributing](../CONTRIBUTING.md).
 
 ---
 

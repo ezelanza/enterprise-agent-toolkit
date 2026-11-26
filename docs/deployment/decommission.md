@@ -12,7 +12,7 @@ From the Toolkit Manager directory (see [which repository to start from](../over
 ./toolkit_manager.sh teardown agent-toolkit
 ```
 
-That removes the Helm releases and namespaces the toolkit install owns (`redis`, `pgvector`, `agent-sandbox-system`, `ray-system`, `openshell-system` / `openshell-sandboxes` when OpenShell was on, and related inference pieces such as `litellm` and `langfuse` when they were brought up as dependencies). It also cleans images the install loaded onto the nodes.
+That removes the Agent Toolkit layer only — the components this repo owns (`redis`, `pgvector`, `keycloak_agent_config`, agent sandbox / OpenShell, KubeRay when on) and anything that depends on that layer — and deletes objects labelled `toolkit-manager.intel.com/env` and `toolkit-manager.intel.com/component`. Cluster, platform, and **inference stay** (LiteLLM and Langfuse are inference-layer; they are not removed). See Toolkit Manager [Agent Toolkit](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/agent-toolkit.md) (“keeps cluster, platform and inference intact”) and [teardown](https://github.com/intel/toolkit-manager/blob/main/docs/reference/cli.md#teardown).
 
 To tear down **everything** the installer created, including Kubernetes itself:
 
