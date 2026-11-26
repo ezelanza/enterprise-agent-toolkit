@@ -28,7 +28,7 @@ pip install "langchain>=1.0,<2" "langchain-openai>=1.0,<2"
 Set the connection variables. Run the `cp` from the Toolkit Manager directory. Paste the virtual key you created (not the master key from the secret):
 
 ```bash
-export AGENT_TOOLKIT_BASE_URL=https://litellm.api.example.com/v1   # https://litellm.<base_domain_name>/v1
+export AGENT_TOOLKIT_BASE_URL=https://litellm.inteltoolkits.ai/v1   # https://litellm.<base_domain_name>/v1
 export AGENT_TOOLKIT_API_KEY=sk-...                                 # LiteLLM virtual key
 
 cp env/local/logs/toolkit-manager-ca.crt ~/first-agent/ca.crt
@@ -98,7 +98,7 @@ The output is the final answer, for example `23.5 multiplied by 4 is 94.`. The m
 
 The gateway sends every model request to Langfuse automatically. No code or configuration is needed.
 
-Open `https://langfuse.<base_domain_name>` (for example `https://langfuse.api.example.com`) and select **Traces**. Each run of `agent.py` produces one trace per model request, usually two:
+Open `https://langfuse.<base_domain_name>` (for example `https://langfuse.inteltoolkits.ai`) and select **Traces**. Each run of `agent.py` produces one trace per model request, usually two:
 
 1. The request in which the model asks to call `multiply` with `a: 23.5, b: 4`.
 2. The request that includes the tool result, `94.0`, in which the model writes the final answer.

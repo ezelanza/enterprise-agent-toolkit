@@ -27,7 +27,7 @@ These are the files `init` writes under `env/local/`. Change the copies here; th
 ### `global_config.yaml`
 
 ```yaml
-base_domain_name: api.example.com
+base_domain_name: inteltoolkits.ai
 gateway_tls_mode: selfsigned     # selfsigned | custom
 # gateway_tls_mode: custom
 # gateway_tls_cert_file: /path/to/cert.pem

@@ -59,7 +59,7 @@ The toolkit is framework-agnostic. Agents built with LangGraph, CrewAI, Microsof
 
 ## Quickstart
 
-Start here to run the agent platform on one host. Toolkit Manager installs the stack and one chat model. The last step calls the gateway so you can see that it answers. With the example domain `api.example.com`, the API is `https://litellm.api.example.com`.
+Start here to run the agent platform on one host. Toolkit Manager installs the stack and one chat model. The last step calls the gateway so you can see that it answers. With the default domain `inteltoolkits.ai`, the API is `https://litellm.inteltoolkits.ai`.
 
 Complete **[Prerequisites](docs/getting-started/prerequisites.md)** once before you start (hardware, kernel settings, SSH, DNS or `/etc/hosts`). Default catalog models need Intel® AMX (4th Gen Intel® Xeon® Scalable processors or newer); without it the model pod stays `Pending`. On older CPUs set `require_amx: false` in `env/local/models.yaml` after `init`.
 
@@ -81,7 +81,7 @@ Run the rest of this quickstart from the `toolkit-manager` directory: `init` clo
 
 | File | Setting | Purpose |
 |---|---|---|
-| `global_config.yaml` | `base_domain_name: api.example.com` | Domain. The API is `https://litellm.api.example.com`. |
+| `global_config.yaml` | `base_domain_name: inteltoolkits.ai` | Domain (Toolkit Manager default). The API is `https://litellm.inteltoolkits.ai`. |
 | `config.agent-toolkit.yaml` | `auth_type: litellm_vkey` | LiteLLM gateway (default from `init`). Set `jwt` for Keycloak on the AI gateway. |
 | `config.agent-toolkit.yaml` | `llm_services_autodeploy_models: ["qwen2-5-coder-14b"]` | Default chat model. Names must match `models.yaml`. |
 
@@ -100,34 +100,31 @@ The first install usually takes 20–40 minutes, and the model pod can spend ano
 
 ### 4. Verify
 
+Same check as Toolkit Manager ([Agent Toolkit](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/agent-toolkit.md)): call the gateway from this host with `--resolve` and the installer CA (avoids MetalLB hairpin and skips a brittle `/etc/hosts` step for the smoke test).
+
 <!-- golden-path: retry 60 30; timeout 2400; expect "choices" -->
 ```bash
 export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
 kubectl get nodes
 kubectl get pods -A
 
-GW=$(kubectl get svc -n envoy-gateway-system \
+GATEWAY_IP=$(kubectl get svc -n envoy-gateway-system \
   -l gateway.envoyproxy.io/owning-gateway-name=eg-gateway \
   -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
-echo "$GW"
-grep -q "litellm.api.example.com" /etc/hosts || \
-  echo "$GW litellm.api.example.com langfuse.api.example.com" | sudo tee -a /etc/hosts
+DOMAIN=$(yq '.base_domain_name' env/local/global_config.yaml)
+echo "$GATEWAY_IP  litellm.$DOMAIN"   # optional: also add to /etc/hosts for browsers
 
 export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d)
 
-# On a single node, curling the LoadBalancer IP from that same host often
-# resets the TLS handshake (MetalLB hairpin). Port-forward for the smoke test;
-# use https://litellm.api.example.com from any other machine.
-kubectl -n litellm port-forward svc/litellm 4000:4000 >/tmp/litellm-pf.log 2>&1 &
-PF=$!
-trap 'kill $PF 2>/dev/null' EXIT
-sleep 2
-
-curl http://127.0.0.1:4000/v1/models \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/models" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"
 
-curl http://127.0.0.1:4000/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -d '{"model": "qwen2-5-coder-14b",
@@ -135,18 +132,18 @@ curl http://127.0.0.1:4000/v1/chat/completions \
        "max_tokens": 100}'
 ```
 
-A working platform lists `qwen2-5-coder-14b` from `/v1/models` and returns the model's reply in `choices[0].message.content`. From another machine, call `https://litellm.api.example.com` with `-k` because the certificate was signed by the installer. Redis, pgvector, and the sandbox are already running behind that gateway, and their addresses inside the cluster are in the [backend connection reference](docs/reference/backend-connections.md).
+A working platform lists `qwen2-5-coder-14b` from `/v1/models` and returns the model's reply in `choices[0].message.content`. Redis, pgvector, and the sandbox are already running; in-cluster addresses are in the [backend connection reference](docs/reference/backend-connections.md).
 
 | Symptom | Resolution |
 |---|---|
-| `Could not resolve host` | The `/etc/hosts` line is missing or uses the wrong IP. Rerun the `GW=` commands. |
-| TLS `Connection reset` on this host | Expected on a single-node MetalLB setup. Use the port-forward curls above, or call the gateway from another machine. |
+| `Could not resolve host` / wrong peer | Check `GATEWAY_IP` and `--resolve litellm.$DOMAIN:443:$GATEWAY_IP`. |
+| `SSL certificate problem` | Use `--cacert env/local/logs/toolkit-manager-ca.crt` from the Toolkit Manager directory (or `-k` to skip verify). |
 | `401` | `LITELLM_MASTER_KEY` is not set in this shell. Rerun the `export`. |
 | `model not found` | Use the `id` returned by `/v1/models`. The default id is `qwen2-5-coder-14b`. |
 | `500`, `503`, or a timeout | The model is still loading. Wait until its pod is `1/1 Running`, then retry. |
 | Pods stuck, `too many open files` | The inotify sysctl from [Prerequisites](docs/getting-started/prerequisites.md#node-kernel-settings) was not applied on this node. |
 
-Use the master key only in the curls above. For agents and apps, create a LiteLLM virtual key ([Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model)) and call `https://litellm.api.example.com/v1`. Next: [build a first agent](docs/getting-started/first-agent.md). More detail: [single-node quickstart](docs/getting-started/quickstart.md) and [Troubleshooting](docs/faq-and-troubleshooting/troubleshooting.md).
+Use the master key only in the curls above. For agents and apps, create a LiteLLM virtual key ([Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model)) and call `https://litellm.<base_domain_name>/v1`. Next: [build a first agent](docs/getting-started/first-agent.md). More detail: [single-node quickstart](docs/getting-started/quickstart.md) and [Troubleshooting](docs/faq-and-troubleshooting/troubleshooting.md).
 
 ---
 

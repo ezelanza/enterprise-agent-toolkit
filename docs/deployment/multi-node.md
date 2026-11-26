@@ -62,21 +62,23 @@ Open these ports between nodes: Kubernetes API `6443`, etcd `2379–2380`, Calic
 Each node needs to resolve the gateway names. If you do not have DNS yet, add `/etc/hosts` entries that point at the control-plane IP (or the load-balancer IP):
 
 ```bash
-# 10.0.0.1 = control-plane or LB. api.example.com = your base_domain_name
+# 10.0.0.1 = control-plane or LB. Use your base_domain_name (default inteltoolkits.ai).
 sudo bash -c 'cat >> /etc/hosts <<EOF
-10.0.0.1 litellm.api.example.com
-10.0.0.1 langfuse.api.example.com
+10.0.0.1 litellm.inteltoolkits.ai
+10.0.0.1 langfuse.inteltoolkits.ai
+10.0.0.1 keycloak.inteltoolkits.ai
+10.0.0.1 grafana.inteltoolkits.ai
 EOF'
 ```
 
 On the **control-plane**, create a certificate that covers those names (or install one from your CA), then point `global_config.yaml` at the files:
 
 ```bash
-DOMAIN="api.example.com"
+DOMAIN="inteltoolkits.ai"   # or your base_domain_name
 mkdir -p ~/certs && cd ~/certs && \
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
   -subj "/CN=${DOMAIN}" \
-  -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:*.${DOMAIN}"
+  -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:*.${DOMAIN}"
 ```
 
 ```yaml
@@ -94,7 +96,7 @@ The files under `env/local/` are the same ones the [quickstart](../getting-start
 
 ```yaml
 # env/local/global_config.yaml
-base_domain_name: api.example.com
+base_domain_name: inteltoolkits.ai
 auth_type: litellm_vkey
 storage_backend: ceph
 ```
@@ -131,13 +133,22 @@ export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
 kubectl get nodes -o wide
 kubectl get pods -A
 
+GATEWAY_IP=$(kubectl get svc -n envoy-gateway-system \
+  -l gateway.envoyproxy.io/owning-gateway-name=eg-gateway \
+  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+DOMAIN=$(yq '.base_domain_name' env/local/global_config.yaml)
+
 export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d)
 
-curl -k https://litellm.api.example.com/v1/models \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/models" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"
 
-curl -k https://litellm.api.example.com/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -d '{"model": "qwen2-5-coder-14b",
@@ -145,7 +156,7 @@ curl -k https://litellm.api.example.com/v1/chat/completions \
        "max_tokens": 100}'
 ```
 
-Replace `api.example.com` with your `base_domain_name`. Redis, pgvector, and the sandbox are already running. In-cluster URLs are in the [quickstart](../getting-started/quickstart.md#what-also-came-up).
+Same verify as the README and single-node quickstart. Redis, pgvector, and the sandbox are already running. In-cluster URLs are in the [quickstart](../getting-started/quickstart.md#what-also-came-up).
 
 ## Add a worker later
 

@@ -18,7 +18,7 @@ The list of catalog names deployed during `install`. It lives in `env/local/conf
 
 ## Base domain (`base_domain_name`)
 
-The domain you set in `env/local/global_config.yaml`, for example `api.example.com`. Services are names under it: `litellm.api.example.com` for the gateway, `langfuse.api.example.com` for traces, `vllm-sr.api.example.com` for the semantic-router dashboard. Each name must match DNS or `/etc/hosts` and the TLS certificate. See [DNS and TLS](../getting-started/prerequisites.md#2-dns-and-tls).
+The domain you set in `env/local/global_config.yaml` (default `inteltoolkits.ai`). Services are names under it: `litellm.inteltoolkits.ai` for the gateway, `langfuse.inteltoolkits.ai` for traces, `keycloak.inteltoolkits.ai` for sign-in, `grafana.inteltoolkits.ai` for dashboards. Each name must match DNS or `/etc/hosts` and the TLS certificate. See [DNS and TLS](../getting-started/prerequisites.md#2-dns-and-tls).
 
 ## Host
 

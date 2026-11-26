@@ -26,12 +26,12 @@ All live config is under `env/local/`. Change those files, not the copies in git
 ### `env/local/global_config.yaml`: domain
 
 ```yaml
-base_domain_name: api.example.com
+base_domain_name: inteltoolkits.ai   # Toolkit Manager default; change only if you use your own domain
 ```
 
 | Field | What it means |
 |---|---|
-| `base_domain_name` | Hostname of the gateway. Must match DNS or `/etc/hosts`. |
+| `base_domain_name` | Hostname of the gateway (default `inteltoolkits.ai`). Must match DNS or `/etc/hosts`. |
 
 Leave these two at their defaults:
 
@@ -104,24 +104,31 @@ This builds Kubernetes (unless you brought your own cluster with `existing_kuber
 
 ## 5. Confirm it works
 
+Same check as Toolkit Manager ([Agent Toolkit](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/agent-toolkit.md)): `--resolve` plus the installer CA, so the curl works from this host without relying on `/etc/hosts` for the smoke test.
+
 ```bash
 export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
 
 kubectl get nodes
 kubectl get pods -A
 
+GATEWAY_IP=$(kubectl get svc -n envoy-gateway-system \
+  -l gateway.envoyproxy.io/owning-gateway-name=eg-gateway \
+  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+DOMAIN=$(yq '.base_domain_name' env/local/global_config.yaml)
+echo "$GATEWAY_IP  litellm.$DOMAIN"   # optional: also add to /etc/hosts for browsers
+
 export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d)
 
-# Gateway IP. Map litellm.<base_domain_name> to it. See Prerequisites.
-kubectl get svc -n envoy-gateway-system -l gateway.envoyproxy.io/owning-gateway-name=eg-gateway \
-  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}'; echo
-
-# Replace api.example.com with your base_domain_name
-curl -k https://litellm.api.example.com/v1/models \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/models" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"
 
-curl -k https://litellm.api.example.com/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -d '{"model": "qwen2-5-coder-14b",
@@ -133,7 +140,7 @@ Use the `id` from `/v1/models` as `"model"`. For the default install that id is 
 
 The master key lives in secret `litellm-master-key` (namespace `litellm`). Inside the LiteLLM pod it is `PROXY_MASTER_KEY`. The in-cluster service is `litellm.litellm.svc.cluster.local:4000`.
 
-`-k` skips TLS verification, because the certificate is signed by the installer's own CA. To verify it instead, replace `-k` with `--cacert env/local/logs/toolkit-manager-ca.crt`, the root CA the installer exports. Production should use a CA-issued certificate.
+`--cacert` trusts the root CA the installer exports (`env/local/logs/toolkit-manager-ca.crt`). Use `-k` only if you want to skip verify. Production should use a CA-issued certificate.
 
 ## What also came up
 
