@@ -70,28 +70,21 @@ export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
 
 ## 3. Choose a model
 
-Set `llm_services_autodeploy_models` to one or more names from this table. Do not invent a Hugging Face id here. The chat `"model"` value is this name, for example `qwen2-5-coder-14b`.
+The install deploys the names in `llm_services_autodeploy_models`. Use a catalog name from `env/local/models.yaml`, not a raw Hugging Face id. The chat `"model"` value is that same name.
 
-| Value | Model |
-|---|---|
-| `qwen2-5-coder-14b` | Qwen/Qwen2.5-Coder-14B-Instruct. Default |
-| `qwen2-5-coder-7b` | Qwen/Qwen2.5-Coder-7B-Instruct. Fits a 128 GB node |
-| `qwen3-coder-30b` | Qwen/Qwen3-Coder-30B-A3B-Instruct |
-| `qwen3-30b-a3b` | Qwen/Qwen3-30B-A3B-Instruct-2507 |
-| `qwen3-6-35b-a3b` | Qwen/Qwen3.6-35B-A3B |
-| `gemma-4-26b` | google/gemma-4-26B-A4B-it (gated) |
-| `llama-3-1-8b` | meta-llama/Llama-3.1-8B-Instruct (gated). Sequential tool calls only |
-| `llama-3-1-8b-specdec` | The same model with speculative decoding |
-| `qwen3-coder-30b-specdec` | The 30B coder with speculative decoding |
-| `qwen2-5-coder-14b-specdec` | The default coder with speculative decoding |
-| `bge-base-en` | BAAI/bge-base-en-v1.5 (embeddings) |
-| `bge-reranker` | BAAI/bge-reranker-base (reranking) |
+The default is `qwen2-5-coder-14b` (about 96 GiB for the model pod; ~131 GiB for the whole stack). On a 128 GB node, set `qwen2-5-coder-7b` instead:
 
-A `-specdec` name deploys that model with a smaller draft model. The draft is configured for you. The chat `"model"` value keeps the suffix, for example `qwen3-coder-30b-specdec`.
+```yaml
+llm_services_autodeploy_models: ["qwen2-5-coder-7b"]
+```
 
-The default model requests about 96 GiB, and the rest of a default install (guard model, router, platform) brings the total to about 131 GiB. On a 128 GB node, use `qwen2-5-coder-7b` or `llama-3-1-8b` instead. Per-model CPU and memory live in `env/local/models.yaml`. To add or size a model, see [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
+For every other catalog name (larger chat models, embeddings, rerankers, speculative-decoding variants), list what `init` seeded:
 
-On a node with one NUMA node, `cpu: auto` on the default model can leave no cores for a second model. `./model-manager deploy` then stops with `NRI pre-flight failed: not enough physical cores`. Set an explicit `cpu:` for the first model, or undeploy it with `./model-manager undeploy <name>` before deploying another. `model-manager` is in the Toolkit Manager checkout, next to `toolkit_manager.sh`.
+```bash
+./model-manager list --catalog
+```
+
+That reads `env/local/models.yaml` in the Toolkit Manager checkout (next to `toolkit_manager.sh`). Deploy more models later with `./model-manager deploy <name>`, or edit sizing in that file. Full steps: [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
 
 ## 4. Install
 

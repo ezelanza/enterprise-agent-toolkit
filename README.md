@@ -59,11 +59,13 @@ The toolkit is framework-agnostic. Agents built with LangGraph, CrewAI, Microsof
 
 ## Quickstart
 
-Start here to run the agent platform on one host. Toolkit Manager installs the stack and one chat model. The last step calls the gateway so you can see that it answers. With the default domain `inteltoolkits.ai`, the API is `https://litellm.inteltoolkits.ai`.
+Start here to run the agent platform on one host. Toolkit Manager installs the stack and one chat model; the last step calls the gateway so you can see that it answers. Defaults are domain `inteltoolkits.ai` and model `qwen2-5-coder-14b` (about 131 GB of RAM for the whole stack).
 
-Complete **[Prerequisites](docs/getting-started/prerequisites.md)** once before you start (hardware including Intel® AMX, kernel settings, SSH). `/etc/hosts` can wait until after install for browsers; the smoke test below uses `--resolve`.
+Complete **[Prerequisites](docs/getting-started/prerequisites.md)** once before you start (Intel® AMX, SSH, and the kernel settings).
 
-### 1. Install Toolkit Manager and generate the configuration
+### 1. Get Toolkit Manager and seed the config
+
+Clone Toolkit Manager, install its tools, then create an `env/local/` directory with the defaults for this toolkit. Run every later command from that directory.
 
 <!-- golden-path: timeout 1800 -->
 ```bash
@@ -73,34 +75,22 @@ cd toolkit-manager
 ./toolkit_manager.sh init agent-toolkit
 ```
 
-Run the rest of this quickstart from the `toolkit-manager` directory: `init` clones this repository under `ext/` and writes the configuration you edit next.
+`init` also clones this repository under `ext/`. Leave the files under `env/local/` as they are for the first run.
 
-### 2. Set the configuration
+### 2. Install the stack
 
-`init` writes the files under `env/local/`. Set the domain there, and change the model only when you do not want the default, leaving the other keys as `init` wrote them. The default model needs about 131 GB of RAM; on a 128 GB server use `qwen2-5-coder-7b` or `llama-3-1-8b`.
-
-| File | Setting | Purpose |
-|---|---|---|
-| `global_config.yaml` | `base_domain_name: inteltoolkits.ai` | Domain (Toolkit Manager default). The API is `https://litellm.inteltoolkits.ai`. |
-| `config.agent-toolkit.yaml` | `auth_type: litellm_vkey` | LiteLLM gateway (default from `init`). Set `jwt` for Keycloak on the AI gateway. |
-| `config.agent-toolkit.yaml` | `llm_services_autodeploy_models: ["qwen2-5-coder-14b"]` | Default chat model. Names must match `models.yaml`. |
-
-`gateway_tls_mode: selfsigned` tells the installer to generate the certificate, and `storage_backend: local-path` keeps the data on this host.
-
-### 3. Install
-
-For a gated model (Llama, Gemma), export `HF_TOKEN` first. The default `qwen2-5-coder-14b` is not gated, so skip that.
+This brings up the cluster, model serving, and the agent services (memory, sandbox, and the gateway).
 
 <!-- golden-path: timeout 7200 -->
 ```bash
 ./toolkit_manager.sh install agent-toolkit
 ```
 
-The first install usually takes 20–40 minutes, and the model pod can spend another 10–15 minutes downloading weights after that. If the command stops before it finishes, run it again and it will pick up at the step that did not complete. You use that same command later, whenever you change the YAML and want the cluster to match it.
+The first run usually takes 20–40 minutes, and the model may take longer to download. If the command stops part-way, run it again; it continues from where it left off.
 
-### 4. Verify
+### 3. Call the gateway
 
-Call the gateway with `--resolve` and the installer CA (same as the [single-node quickstart](docs/getting-started/quickstart.md#5-confirm-it-works)):
+Confirm the API answers. The curl uses the installer CA and `--resolve`, so you do not need `/etc/hosts` for this smoke test.
 
 <!-- golden-path: retry 60 30; timeout 2400; expect "choices" -->
 ```bash
@@ -122,7 +112,13 @@ curl --cacert env/local/logs/toolkit-manager-ca.crt \
        "max_tokens": 100}'
 ```
 
-A working reply has `choices[0].message.content`. Use the master key only for this smoke test; apps need a virtual key ([Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model)). Next: [first agent](docs/getting-started/first-agent.md). Symptoms and full curls: [quickstart](docs/getting-started/quickstart.md#5-confirm-it-works).
+A working reply includes `choices[0].message.content`. The master key is only for this check.
+
+---
+
+**Next: connect your agent to the gateway.** Follow [build your first agent](docs/getting-started/first-agent.md) to create a virtual key and run a LangChain agent against this stack.
+
+When you want a different domain or model, use the [single-node quickstart](docs/getting-started/quickstart.md).
 
 ---
 
