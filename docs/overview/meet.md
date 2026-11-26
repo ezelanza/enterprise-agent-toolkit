@@ -57,14 +57,16 @@ The install and configuration guides use these names. Each component ships with 
 
 | Component | Default | Role |
 |---|---|---|
-| **LiteLLM** | On (`auth_type: litellm_vkey`) | HTTPS gateway: one URL, virtual keys per app, OpenAI-compatible `/v1/chat/completions`. Or Envoy gateway with Keycloak auth (`auth_type: jwt`) |
+| **LiteLLM** | On (`auth_type: litellm_vkey`) | HTTPS gateway: one URL, virtual keys per app, OpenAI-compatible `/v1/chat/completions` |
 | **Redis Stack** | On | Short-term memory: session state, caches, and RediSearch |
 | **PostgreSQL + pgvector** | On | Long-term memory: embeddings, RAG, and data that persists across pod restarts |
 | **Agent Sandbox** | On | Isolated pods for agent actions, off the host |
 | **OpenShell** | Off | Policy layer on the Agent Sandbox. Set `openshell_enabled: true` at install |
 | **KubeRay** | Off | Distributes Python tasks across worker pods. Set `kuberay_enabled: true` |
-| **Keycloak realm** | On | Creates an `agent-toolkit` realm on the platform Keycloak; does not deploy Keycloak itself. Set `keycloak_agent_config_enabled: false` to skip it |
+| **Keycloak realm** | On | Creates an `agent-toolkit` realm on the platform Keycloak (does not deploy Keycloak). Not required for the default LiteLLM path. Set `keycloak_agent_config_enabled: false` to skip it |
 | **Langfuse** | On with LiteLLM | Trace UI for each LLM call: prompt, tokens, latency, and the model that served the request |
+
+For Keycloak JWT on the AI gateway (`auth_type: jwt`), see [Configuration](../configuration/configuration.md).
 
 ## Deployment commands
 

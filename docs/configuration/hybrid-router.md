@@ -138,35 +138,35 @@ The resulting `hybrid_router_config` keys:
 
 `complexity_router_config.tier_boundaries` accepts `simple_medium`, `medium_complex`, and `complex_reasoning` (defaults `0.15`, `0.35`, `0.60`).
 
-For reference, the role generates a LiteLLM entry equivalent to this one:
+For reference, the role generates a LiteLLM entry equivalent to this one (catalog names, not Hugging Face ids):
 
 ```yaml
 model_list:
-  - model_name: llama-8b
+  - model_name: qwen2-5-coder-14b
     litellm_params:
-      model: openai/Llama-3.1-8B
-      api_base: http://inference-8b:8000/v1
+      model: openai/qwen2-5-coder-14b
+      api_base: http://qwen2-5-coder-14b.llm-inference.svc.cluster.local:80/v1
       api_key: not-needed
-  - model_name: llama-70b
+  - model_name: qwen3-coder-30b
     litellm_params:
-      model: openai/Llama-3.1-70B
-      api_base: http://inference-70b:8000/v1
+      model: openai/qwen3-coder-30b
+      api_base: http://qwen3-coder-30b.llm-inference.svc.cluster.local:80/v1
       api_key: not-needed
 
   # Virtual entry that clients call
   - model_name: hybrid-router
     litellm_params:
       model: auto_router/hybrid_router
-      hybrid_router_default_model: llama-8b
+      hybrid_router_default_model: qwen2-5-coder-14b
       hybrid_router_config:
         bandit: thompson
         target_tpt: 1.0
         quality_weight: 0.0
         tier_candidates:
-          SIMPLE:    [llama-8b, llama-70b]
-          MEDIUM:    [llama-8b, llama-70b]
-          COMPLEX:   [llama-70b]
-          REASONING: [llama-70b]
+          SIMPLE:    [qwen2-5-coder-14b]
+          MEDIUM:    [qwen2-5-coder-14b, qwen3-coder-30b]
+          COMPLEX:   [qwen3-coder-30b]
+          REASONING: [qwen3-coder-30b]
         complexity_router_config:
           tier_boundaries:
             simple_medium: 0.15
@@ -174,51 +174,16 @@ model_list:
             complex_reasoning: 0.60
 ```
 
-## 3. Optional: add a virtual model at runtime
+Prefer YAML + `litellm_reconcile` over hand-posting models at runtime. Every name in `tier_candidates` must already be deployed (`./model-manager list --catalog` and `./model-manager deploy <name>`).
 
-If the gateway is running with `store_model_in_db` enabled, you can add another virtual entry without editing config or restarting, through `/model/new`:
+## 3. Test
 
-```bash
-export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
-  -o jsonpath='{.data.master_key}' | base64 -d)
-
-# Or use the in-cluster endpoint http://litellm.litellm.svc.cluster.local:4000
-curl -k https://litellm.<base_domain_name>/model/new \
-  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model_name": "hybrid_router2",
-    "litellm_params": {
-      "model": "auto_router/hybrid_router",
-      "hybrid_router_default_model": "Qwen/Qwen2.5-Coder-14B-Instruct",
-      "hybrid_router_config": {
-        "bandit": "thompson",
-        "delta": 0.1,
-        "epsilon": 0.1,
-        "target_tpt": 1.0,
-        "quality_weight": 0.0,
-        "tier_candidates": {
-          "SIMPLE":    ["meta-llama/Llama-3.1-8B-Instruct", "Qwen/Qwen2.5-Coder-14B-Instruct"],
-          "MEDIUM":    ["meta-llama/Llama-3.1-8B-Instruct", "Qwen/Qwen2.5-Coder-14B-Instruct"],
-          "COMPLEX":   ["Qwen/Qwen3-Coder-30B-A3B-Instruct"],
-          "REASONING": ["Qwen/Qwen3-Coder-30B-A3B-Instruct"]
-        },
-        "complexity_router_config": {
-          "tier_boundaries": {"simple_medium": 0.15, "medium_complex": 0.35, "complex_reasoning": 0.60},
-          "token_thresholds": {"simple": 15, "complex": 400}
-        }
-      }
-    },
-    "model_info": {}
-  }'
-```
-
-`model_name` is the name clients call (here `hybrid_router2`). Every model in `tier_candidates` and `hybrid_router_default_model` must already be onboarded on the gateway.
-
-## 4. Test
+Use the same `--cacert` / `--resolve` pattern as the [quickstart](../getting-started/quickstart.md#5-confirm-it-works) (or port-forward LiteLLM).
 
 ```bash
-curl -k https://litellm.<base_domain_name>/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
   -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"model": "hybrid-router", "messages": [{"role": "user", "content": "What is 2+2?"}]}'
@@ -226,7 +191,7 @@ curl -k https://litellm.<base_domain_name>/v1/chat/completions \
 
 The router classifies the prompt and forwards it. Requests to any other model name are unaffected.
 
-## 5. Observe routing decisions
+## 4. Observe routing decisions
 
 The proxy logs one line at startup and one per routed request:
 
@@ -236,8 +201,8 @@ kubectl logs -n litellm deploy/litellm -c litellm -f
 
 ```
 [HybridRouterProxy] litellm.router.Router patched for auto_router/hybrid_router
-[HybridRouterProxy] Initialised model_name=hybrid-router bandit=thompson default=llama-8b tiers=['SIMPLE', 'MEDIUM', 'COMPLEX', 'REASONING']
-[HybridRouterProxy] model=hybrid-router call_id=... tier=SIMPLE -> llama-8b
+[HybridRouterProxy] Initialised model_name=hybrid-router bandit=thompson default=qwen2-5-coder-14b tiers=['SIMPLE', 'MEDIUM', 'COMPLEX', 'REASONING']
+[HybridRouterProxy] model=hybrid-router call_id=... tier=SIMPLE -> qwen2-5-coder-14b
 ```
 
 Per-tier bandit state (arm counts, running means, and the Beta `alpha`/`beta` posteriors for Thompson) is available from `HybridRouterProxy.router_state()`. Latency and token metrics also reach Langfuse and Prometheus through the standard gateway telemetry.
@@ -272,29 +237,10 @@ kubectl rollout restart deployment litellm -n litellm
 
 Set `hybrid_router_enabled: false` in `env/local/config.inference.yaml`. On a fresh install, the ConfigMap, mounts, callback, and virtual model are not created. Because LiteLLM is install-once, removing them from a running release takes `helm uninstall litellm -n litellm` followed by `./toolkit_manager.sh install inference`. With the router off, LiteLLM behaves as a stock proxy.
 
-## File layout
-
-The router lives in the inference repository:
-
-```
-ai-inference/roles/litellm/
-├── defaults/main.yaml                ← hybrid_router_* settings
-├── config.yaml                       ← seeds config.inference.yaml (the toggle)
-├── tasks/hybrid_router_setup.yaml    ← ConfigMap, mounts, callback, model wiring
-└── files/router/
-    ├── custom_hybrid_router.py       ← callback and Router patch (entry point)
-    └── router_strategy/
-        ├── efficiency_router/
-        │   ├── bandit.py             ← UCB, EpsilonGreedy, ThompsonSampling
-        │   └── efficiency_router.py  ← standalone efficiency router and reward functions
-        └── hybrid_router/
-            └── hybrid_router.py      ← two-layer router (classify, then pick)
-```
-
 ## Next steps
 
-- [Routing](routing.md): the other routing options (Auto Router, semantic routing)
-- [Configuration](configuration.md): `hybrid_router_enabled` in `config.inference.yaml`
-- [Quickstart: Auto Router](../getting-started/quickstart.md#optional-route-simple-vs-complex-prompts): LiteLLM UI routing that does not use this flag
+- [Quickstart hybrid section](../getting-started/quickstart.md#optional-route-simple-vs-complex-prompts): first-run tier lists and `litellm_reconcile`
+- [Routing](routing.md): other routing options (including semantic routing)
+- [Configuration](configuration.md): `hybrid_router_enabled`
 - [Backend connection reference](../reference/backend-connections.md): Langfuse traces
 - [Glossary](../reference/glossary.md#routing)

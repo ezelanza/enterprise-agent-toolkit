@@ -43,27 +43,21 @@ The install discovers model services already in the cluster, deploys the vLLM-SR
 
 ### Call it
 
+Use the same `--cacert` / `--resolve` pattern as the [quickstart](../getting-started/quickstart.md#5-confirm-it-works) (set `DOMAIN`, `GATEWAY_IP`, and `LITELLM_MASTER_KEY` the same way):
+
 ```bash
-curl -k https://litellm.<base_domain_name>/v1/chat/completions \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <LITELLM_MASTER_KEY>" \
+  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -d '{
     "model": "vllm-sr/auto",
     "messages": [{"role": "user", "content": "write a hello world in python"}]
   }'
 ```
 
-A named model bypasses routing:
-
-```bash
-curl -k https://litellm.<base_domain_name>/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <LITELLM_MASTER_KEY>" \
-  -d '{
-    "model": "qwen2-5-coder-14b",
-    "messages": [{"role": "user", "content": "hello"}]
-  }'
-```
+A named model bypasses routing (`"model": "qwen2-5-coder-14b"` on the same URL).
 
 ### Dashboard
 
@@ -200,8 +194,10 @@ A new prompt category (math, legal) needs a signal and a matching decision. See 
 Check which model answered:
 
 ```bash
-curl -k https://litellm.<base_domain_name>/v1/chat/completions \
-  -H "Authorization: Bearer <LITELLM_MASTER_KEY>" \
+curl --cacert env/local/logs/toolkit-manager-ca.crt \
+  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
+  "https://litellm.$DOMAIN/v1/chat/completions" \
+  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"model": "vllm-sr/auto", "messages": [{"role": "user", "content": "write a python function to sort a list"}]}' \
   | jq -r .model

@@ -10,7 +10,7 @@ If you only have one host, follow the [single-node quickstart](../getting-starte
 
 For a high-speed fabric and NVMe Ceph, see [Rack-scale deployment](rack-scale.md) instead of this Ethernet multi-node path.
 
-Complete **[Prerequisites](../getting-started/prerequisites.md)** on every node before you start: SSH from the installer host to all nodes, `/etc/hosts` (or DNS), and TLS.
+Complete **[Prerequisites](../getting-started/prerequisites.md)** on every node before you start (SSH and host prep). Self-signed TLS is fine for a first cluster; `/etc/hosts` can wait until browsers need the gateway names.
 
 ## Topologies
 
@@ -21,7 +21,7 @@ Most teams start with a single control plane and add workers for inference. Thre
 | 1 control plane + N workers | Production that can scale models out. The control plane also runs as a worker unless you taint it. |
 | 3 control planes + N workers | High availability for etcd and the API server. Put a load balancer in front and point `base_domain_name` at the load-balancer IP. |
 
-The gateway (NGINX ingress or Envoy) binds to the control-plane node by default. With several control planes, traffic should land on the load balancer, not on a single node's IP.
+The Envoy gateway binds to the control-plane node by default. With several control planes, traffic should land on the load balancer, not on a single node's IP.
 
 ## 1. Seed config, then list every node
 
@@ -57,42 +57,9 @@ The host that runs `install` must be able to SSH to every node with that key. Pa
 
 Open these ports between nodes: Kubernetes API `6443`, etcd `2379–2380`, Calico BGP `179`, kubelet `10250`. Keep the NodePort range `30000–32767` off the public internet. Redis in this stack is ClusterIP on purpose; do not publish it as NodePort.
 
-## 2. DNS and TLS on every node
+## 2. Domain, storage, and TLS
 
-Each node needs to resolve the gateway names. If you do not have DNS yet, add `/etc/hosts` entries that point at the control-plane IP (or the load-balancer IP):
-
-```bash
-# 10.0.0.1 = control-plane or LB. Use your base_domain_name (default inteltoolkits.ai).
-sudo bash -c 'cat >> /etc/hosts <<EOF
-10.0.0.1 litellm.inteltoolkits.ai
-10.0.0.1 langfuse.inteltoolkits.ai
-10.0.0.1 keycloak.inteltoolkits.ai
-10.0.0.1 grafana.inteltoolkits.ai
-EOF'
-```
-
-On the **control-plane**, create a certificate that covers those names (or install one from your CA), then point `global_config.yaml` at the files:
-
-```bash
-DOMAIN="inteltoolkits.ai"   # or your base_domain_name
-mkdir -p ~/certs && cd ~/certs && \
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
-  -subj "/CN=${DOMAIN}" \
-  -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:*.${DOMAIN}"
-```
-
-```yaml
-# env/local/global_config.yaml
-gateway_tls_mode: custom
-gateway_tls_cert_file: /home/ubuntu/certs/cert.pem
-gateway_tls_key_file: /home/ubuntu/certs/key.pem
-```
-
-The same `base_domain_name` must match DNS/`/etc/hosts` and the certificate. Details and the production CA path are in [Prerequisites](../getting-started/prerequisites.md#2-dns-and-tls).
-
-## 3. The rest of the YAML
-
-The files under `env/local/` are the same ones the [quickstart](../getting-started/quickstart.md) uses. On several nodes, the settings that usually change are the domain, TLS (already set above), and **storage**. `local-path` only works on one node; use `nfs` or `ceph` when pods can land on any worker.
+The files under `env/local/` are the same ones the [quickstart](../getting-started/quickstart.md) uses. On several nodes, the settings that usually change are the domain and **storage**. `local-path` only works on one node; use `nfs` or `ceph` when pods can land on any worker. Leave `gateway_tls_mode: selfsigned` for a first run (installer CA + `--resolve` for the smoke test). Custom certs and `/etc/hosts` for browsers: [Prerequisites](../getting-started/prerequisites.md#2-dns-and-tls).
 
 ```yaml
 # env/local/global_config.yaml
@@ -106,17 +73,9 @@ auth_type: litellm_vkey
 llm_services_autodeploy_models: ["qwen2-5-coder-14b"]
 ```
 
-The catalog names are in the [quickstart](../getting-started/quickstart.md#3-choose-a-model).
+Catalog names: [quickstart](../getting-started/quickstart.md#3-choose-a-model) (`./model-manager list --catalog`). Gated Hugging Face models need `export HF_TOKEN=…` in the same shell as `install`; the default `qwen2-5-coder-14b` does not.
 
-If a model is gated on Hugging Face (Llama, Gemma), export a token in the same shell as `install`:
-
-```bash
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
-```
-
-`qwen2-5-coder-14b` is ungated and does not need a token. It does need about 96 GiB for the model pod.
-
-## 4. Install from the control plane
+## 3. Install from the control plane
 
 ```bash
 ./toolkit_manager.sh install agent-toolkit
@@ -124,39 +83,17 @@ export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
 
 Kubespray reads the generated `hosts.yaml` and provisions Kubernetes first (often 20–30 minutes on a fresh set of nodes). After that, the installer deploys platform, inference, and the toolkit. The command is idempotent: if it stops part-way, run it again.
 
-## 5. Confirm the cluster and the API
+## 4. Confirm the cluster and the API
 
-Wait until every node is Ready. The vLLM pod may stay in `ContainerCreating` for another 10–15 minutes while it downloads weights.
+Wait until every node is Ready. The model pod may stay in `ContainerCreating` while it downloads weights.
 
 ```bash
 export KUBECONFIG=$(pwd)/env/local/kubeconfig.yaml
 kubectl get nodes -o wide
 kubectl get pods -A
-
-GATEWAY_IP=$(kubectl get svc -n envoy-gateway-system \
-  -l gateway.envoyproxy.io/owning-gateway-name=eg-gateway \
-  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
-DOMAIN=$(yq '.base_domain_name' env/local/global_config.yaml)
-
-export LITELLM_MASTER_KEY=$(kubectl get secret litellm-master-key -n litellm \
-  -o jsonpath='{.data.master_key}' | base64 -d)
-
-curl --cacert env/local/logs/toolkit-manager-ca.crt \
-  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
-  "https://litellm.$DOMAIN/v1/models" \
-  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"
-
-curl --cacert env/local/logs/toolkit-manager-ca.crt \
-  --resolve "litellm.$DOMAIN:443:$GATEWAY_IP" \
-  "https://litellm.$DOMAIN/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
-  -d '{"model": "qwen2-5-coder-14b",
-       "messages": [{"role": "user", "content": "Write a Python hello world"}],
-       "max_tokens": 100}'
 ```
 
-Same verify as the README and single-node quickstart. Redis, pgvector, and the sandbox are already running. In-cluster URLs are in the [quickstart](../getting-started/quickstart.md#what-also-came-up).
+Then run the same gateway smoke test as the [single-node quickstart](../getting-started/quickstart.md#5-confirm-it-works) (`--resolve` and the installer CA). Redis, pgvector, and the sandbox are already running; in-cluster URLs are under [What also came up](../getting-started/quickstart.md#what-also-came-up).
 
 ## Add a worker later
 

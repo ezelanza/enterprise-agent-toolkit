@@ -2,7 +2,7 @@
 
 [← Docs index](../README.md)
 
-Deploy the Agent Toolkit on a rack with a dedicated high-speed fabric through Toolkit Manager. The long guide that lived in this repository (old `agentic-config.cfg` / `rack_scale_mode` layout) is replaced by Toolkit Manager's rack-scale docs.
+Deploy the Agent Toolkit on a rack with a dedicated high-speed fabric through Toolkit Manager.
 
 ## What to use
 

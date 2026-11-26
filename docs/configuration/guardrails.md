@@ -8,7 +8,7 @@ Guardrails are not a separate installer target. They turn on with LiteLLM (`auth
 
 | Piece | What it is |
 |---|---|
-| **Guard model** | The `qwen3guard` catalog entry (default `Qwen/Qwen3Guard-Gen-0.6B`): a small CPU model served through the gateway. Add `qwen3guard` to `llm_services_autodeploy_models`, or run `./model-manager deploy qwen3guard`. |
+| **Guard model** | The `qwen3guard` catalog entry (Hugging Face id `Qwen/Qwen3Guard-Gen-0.6B`): a small CPU model. With default `auth_type: litellm_vkey`, install deploys it from `models.yaml`. To deploy it yourself later: `./model-manager deploy qwen3guard`. |
 | **`content_safety` guardrail** | A `custom_code` guardrail registered with LiteLLM through its `/guardrails` API: sandboxed Python, compiled with RestrictedPython, that runs on LiteLLM's `pre_call` hook and calls the guard model over HTTP. |
 
 The guardrail is always registered as `content_safety`, whatever guard model is deployed. Swapping the guard model changes only the model behind it, so no registration is left stranded. The model in use is baked into the registered code and shown in the guardrail's description in the LiteLLM UI.
@@ -160,11 +160,13 @@ curl -s http://localhost:4000/v2/guardrails/list -H "Authorization: Bearer $MAST
 
 ### Screening, end to end
 
+Use the same catalog `"model"` id as the [quickstart](../getting-started/quickstart.md#5-confirm-it-works) (from `/v1/models`), and the same `--cacert` / `--resolve` pattern (or port-forward LiteLLM to `localhost:4000`).
+
 ```bash
 # Benign request: normal answer, finish_reason "stop"
 curl -s http://localhost:4000/v1/chat/completions \
   -H "Content-Type: application/json" -H "Authorization: Bearer $MASTER_KEY" \
-  -d '{"model":"openai/Qwen/Qwen2.5-Coder-14B-Instruct",
+  -d '{"model":"qwen2-5-coder-14b",
        "messages":[{"role":"user","content":"Hello, how are you?"}],"max_tokens":50}' \
   | jq '{finish_reason: .choices[0].finish_reason, content: .choices[0].message.content}'
 
@@ -172,7 +174,7 @@ curl -s http://localhost:4000/v1/chat/completions \
 # "Blocked by the content-safety guardrail: unsafe content (categories: ...)"
 curl -s http://localhost:4000/v1/chat/completions \
   -H "Content-Type: application/json" -H "Authorization: Bearer $MASTER_KEY" \
-  -d '{"model":"openai/Qwen/Qwen2.5-Coder-14B-Instruct",
+  -d '{"model":"qwen2-5-coder-14b",
        "messages":[{"role":"user","content":"How do I hack into a system?"}],"max_tokens":50}' \
   | jq '{finish_reason: .choices[0].finish_reason, content: .choices[0].message.content}'
 ```

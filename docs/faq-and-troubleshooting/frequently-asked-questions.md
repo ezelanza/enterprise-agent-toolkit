@@ -49,7 +49,7 @@ Yes. LiteLLM can proxy those providers next to the local vLLM models. Your appli
 
 ## Where do I run the installer?
 
-From the Toolkit Manager directory. That repository contains `./toolkit_manager.sh`. `init agent-toolkit` clones this repository under `ext/`. Toolkit Manager installs, updates, and tears the toolkit down. See [Meet the Agent Toolkit](../overview/meet.md). Other software the same manager can install is listed under [Deploy](../README.md#deploy).
+From the Toolkit Manager directory. That repository contains `./toolkit_manager.sh`. `init agent-toolkit` clones this repository under `ext/`. Toolkit Manager installs, updates, and tears the toolkit down. See [Meet the Agent Toolkit](../overview/meet.md). Related software: [Intel® Inference Toolkit](https://github.com/intel/inference-toolkit) and [Intel® Chatbot Toolkit](https://swcatalog.intel.com/developer/docs/enterprise-rag).
 
 <a id="which-yaml"></a>
 
@@ -59,10 +59,10 @@ Only the copies under `env/local/` (or `env/<name>/`) after `init`. Typical file
 
 | File | When you touch it |
 |---|---|
-| `global_config.yaml` | Domain, TLS, auth, storage, proxy |
-| `config.inference.yaml` | Turn model serving on |
-| `config.agent-toolkit.yaml` | Which models to start (`llm_services_autodeploy_models`) and which toolkit components are on |
-| `config.agent-toolkit.yaml` | Optional KubeRay; namespaces |
+| `global_config.yaml` | Domain, TLS, storage, proxy |
+| `config.agent-toolkit.yaml` | Auth (`auth_type`), models to start (`llm_services_autodeploy_models`), Redis/pgvector/sandbox/KubeRay/OpenShell |
+| `config.inference.yaml` | Inference-layer flags (hybrid router, semantic router) when you need them |
+| `models.yaml` | Catalog entries and per-model CPU/memory |
 
 Details: [Configuration](../configuration/configuration.md).
 
@@ -93,12 +93,14 @@ Then `curl` `/v1/models` with the master key. If that lists your model, send `/v
 
 ## Where is the API key?
 
+The install creates a **master key** for admin and smoke tests:
+
 ```bash
 kubectl get secret litellm-master-key -n litellm \
   -o jsonpath='{.data.master_key}' | base64 -d
 ```
 
-That is the LiteLLM master key. It is created at install. Do not commit it.
+Do not put that key in application code. For agents, create a **virtual key** and use that instead: [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model) and [Build your first agent](../getting-started/first-agent.md).
 
 <a id="replace"></a>
 

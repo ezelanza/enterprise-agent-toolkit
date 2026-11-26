@@ -82,22 +82,9 @@ psql "postgresql://${PGVECTOR_USER}:${PGVECTOR_PASSWORD}@localhost:5432/${PGVECT
 redis-cli -h localhost -p 6379 -a "${REDIS_PASSWORD}"
 ```
 
-## Models with tuned settings
+## Models and engines
 
-These models have tuned entries in `docker/model-configs.yaml`. Any other Hugging Face id still starts, but it uses defaults, and vLLM may not support every model.
-
-| Model | Type |
-|---|---|
-| `Qwen/Qwen2.5-Coder-14B-Instruct` | LLM |
-| `Qwen/Qwen3-Coder-30B-A3B-Instruct` | LLM |
-| `meta-llama/Llama-3.1-8B-Instruct` | LLM |
-| `google/gemma-4-26B-A4B-it` | LLM |
-| `BAAI/bge-base-en-v1.5` | Embedding |
-| `BAAI/bge-reranker-base` | Reranker |
-
-Defaults for unknown models: `--dtype bfloat16`, `--block-size 128`, `--enable-prefix-caching`, 80 GB memory, 16 GB `/dev/shm`. You will see `[WARN] Model 'org/name' not found in model-configs.yaml`: that is expected.
-
-Do not edit `docker-compose.vllm.yml` or `litellm/config.yaml` by hand; they are generated.
+Put Hugging Face ids in `docker/config.cfg` (`models=`). Tuned flags and how to add a model: [`docker/README.md`](../../docker/README.md) and `docker/model-configs.yaml` (OpenVINO™: `docker/ovms-model-configs.yaml`). Do not edit generated `docker-compose.vllm.yml` or `litellm/config.yaml` by hand.
 
 ## Optional flags in `config.cfg`
 
@@ -112,34 +99,7 @@ https_proxy=
 no_proxy=localhost,127.0.0.1,.genai-gateway,.redis,.postgres,.flowise
 ```
 
-`serving_engine=openvino` generates an OpenVINO™ Model Server compose file from `docker/ovms-model-configs.yaml` instead of vLLM. Details: [`docker/README.md`](../../docker/README.md).
-
-| Model family | Parser |
-|---|---|
-| Qwen Coder 2.5 / 3 | `qwen3_coder` or `qwen3_xml` |
-| Llama 3.1 | `llama3_json` |
-| Gemma 4 | `gemma4` |
-
-### Add a model that is not in the table
-
-```yaml
-# docker/model-configs.yaml
-models:
-  "your-org/your-model-name":
-    served_name: "your-model-safe-name"
-    environment:
-      VLLM_CPU_KVCACHE_SPACE: "40"
-    command_args:
-      - "--block-size"
-      - "128"
-      - "--dtype"
-      - "bfloat16"
-    resources:
-      memory: "80g"
-      shm_size: "16g"
-```
-
-Add the id to `models=` in `config.cfg` and run the deploy command again.
+`serving_engine=openvino` generates an OpenVINO™ Model Server compose file from `docker/ovms-model-configs.yaml` instead of vLLM. Parser values and more flags: [`docker/README.md`](../../docker/README.md).
 
 ## Troubleshooting
 

@@ -4,7 +4,7 @@
 
 This walkthrough installs the Agent Toolkit on **one host**: a single machine, physical or virtual, running on Intel® Platforms. That host is the only Kubernetes node. When it finishes, you have a cluster, a model behind LiteLLM, and an OpenAI-compatible API you can call with `curl` or any OpenAI SDK.
 
-Complete **[Prerequisites](prerequisites.md)** first so SSH and `/etc/hosts` (or DNS) are already in place. No certificate is needed: the installer generates one. If you have more than one host, stop here and use [multi-node deployment](../deployment/multi-node.md) instead: the YAML is the same, but the inventory is not.
+Complete **[Prerequisites](prerequisites.md)** first (SSH and host prep). No certificate is needed: the installer generates one. `/etc/hosts` can wait until after install for browsers; the smoke test uses `--resolve`. If you have more than one host, use [multi-node deployment](../deployment/multi-node.md) instead.
 
 Run every command from the [Toolkit Manager](https://github.com/intel/toolkit-manager) directory, the one that contains `toolkit_manager.sh`.
 
@@ -42,58 +42,33 @@ Leave these two at their defaults:
 
 Already have a cluster? Set `existing_kubernetes: /path/to/kubeconfig` to skip building Kubernetes.
 
-### `env/local/config.agent-toolkit.yaml`: auth, model, and components
+### `env/local/config.agent-toolkit.yaml`: leave the defaults
 
-`init` writes `auth_type: litellm_vkey` so the LiteLLM gateway, Langfuse, and the content-safety guardrail come up together. Leave that for the first run. For Keycloak JWT on the AI gateway instead, set `auth_type: jwt` in this file. The old `auth_provider` key in `global_config.yaml` is deprecated; use `auth_type` only.
+`init` already set `auth_type: litellm_vkey` and `llm_services_autodeploy_models: ["qwen2-5-coder-14b"]`, with Redis, pgvector, and the sandbox on. Leave that file alone for the first run.
 
-The model list is `llm_services_autodeploy_models`. The default is `qwen2-5-coder-14b`. Redis, pgvector, and the sandbox are on. KubeRay is off:
+## 3. Choose a model (only if you need to)
 
-```yaml
-auth_type: litellm_vkey
-llm_services_autodeploy_models: ["qwen2-5-coder-14b"]
-redis_stack_enabled: true
-pgvector_enabled: true
-agent_sandbox_enabled: true
-kuberay_enabled: false
-openshell_enabled: false
-```
-
-Set `kuberay_enabled: true` only if you need Ray. The full guide is [KubeRay](../reference/kuberay.md). Other models are deployed later with `./model-manager deploy <name>`.
-
-### Hugging Face token
-
-Required before install when a model in that list is gated (Llama, Gemma). The default `qwen2-5-coder-14b` is not gated.
-
-```bash
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
-```
-
-## 3. Choose a model
-
-The install deploys the names in `llm_services_autodeploy_models`. Use a catalog name from `env/local/models.yaml`, not a raw Hugging Face id. The chat `"model"` value is that same name.
-
-The default is `qwen2-5-coder-14b` (about 96 GiB for the model pod; ~131 GiB for the whole stack). On a 128 GB node, set `qwen2-5-coder-7b` instead:
+The default chat model is `qwen2-5-coder-14b` (about 96 GiB for the model pod; ~131 GiB for the whole stack). On a 128 GB node, edit `config.agent-toolkit.yaml`:
 
 ```yaml
 llm_services_autodeploy_models: ["qwen2-5-coder-7b"]
 ```
 
-For every other catalog name (larger chat models, embeddings, rerankers, speculative-decoding variants), list what `init` seeded:
+Use a catalog name from `env/local/models.yaml`, not a raw Hugging Face id. To see every name `init` seeded:
 
 ```bash
 ./model-manager list --catalog
 ```
 
-That reads `env/local/models.yaml` in the Toolkit Manager checkout (next to `toolkit_manager.sh`). Deploy more models later with `./model-manager deploy <name>`, or edit sizing in that file. Full steps: [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
+Deploy more later with `./model-manager deploy <name>`. Full steps: [Deploy a model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md) in Toolkit Manager.
 
 ## 4. Install
 
 ```bash
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx   # omit when every selected model is ungated
 ./toolkit_manager.sh install agent-toolkit
 ```
 
-This builds Kubernetes (unless you brought your own cluster with `existing_kubernetes`), then model serving and the toolkit. Re-run the same command to resume a failed run. The first run is about 20–40 minutes; the model pod can take another 10–15 minutes to download weights.
+This builds Kubernetes (unless you set `existing_kubernetes`), then model serving and the toolkit. Re-run the same command to resume a failed run. The first run is about 20–40 minutes; the model pod can take another 10–15 minutes to download weights. The default model is ungated, so no Hugging Face token is needed here. If you later pick a gated model (Llama, Gemma), export `HF_TOKEN` in the same shell before `install` or `./model-manager deploy` — see [Hugging Face token](../configuration/configuration.md#hugging-face-token).
 
 ## 5. Confirm it works
 
@@ -171,11 +146,9 @@ Call `"model": "hybrid-router"`. Which real model answered shows in Langfuse at 
 
 ## Next steps
 
-Once a chat completion succeeds, most people either change which models are served or point an application at the in-cluster backends:
+Once a chat completion succeeds:
 
-- Build a LangChain agent on the gateway and trace it in Langfuse: [Build your first agent](first-agent.md).
-- Edit the YAML under `env/local/` using [Configuration](../configuration/configuration.md).
-- Copy Redis, pgvector, and sandbox URLs from the [backend connection reference](../reference/backend-connections.md).
-- Tune or turn off content-safety screening in [Guardrails](../configuration/guardrails.md), or turn on Ray jobs in [KubeRay](../reference/kuberay.md).
-- Add another server with [multi-node deployment](../deployment/multi-node.md), or [tear the stack down](../deployment/decommission.md) and install again.
-- Optional routing choices are in [Routing](../configuration/routing.md). Common questions: [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md). Terms: [glossary](../reference/glossary.md). Failures: [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).
+- Connect an agent: [Build your first agent](first-agent.md).
+- Change domain, models, auth, or optional components: [Configuration](../configuration/configuration.md).
+- In-cluster URLs: [backend connection reference](../reference/backend-connections.md).
+- More: [Guardrails](../configuration/guardrails.md), [Routing](../configuration/routing.md), [multi-node](../deployment/multi-node.md), [decommission](../deployment/decommission.md), [FAQ](../faq-and-troubleshooting/frequently-asked-questions.md), [Troubleshooting](../faq-and-troubleshooting/troubleshooting.md).

@@ -20,7 +20,7 @@ Problems you hit while installing or calling the API. If the error is specific t
 
 | What you see | What to try |
 |---|---|
-| `curl` TLS error | Self-signed cert: add `-k`. The hostname must match `base_domain_name` and `/etc/hosts`. [Prerequisites](../getting-started/prerequisites.md#2-dns-and-tls) |
+| `curl` TLS error | Prefer `--cacert env/local/logs/toolkit-manager-ca.crt` and `--resolve` as in the [quickstart](../getting-started/quickstart.md#5-confirm-it-works). Use `-k` only to skip verify. The hostname must match `base_domain_name`. [Prerequisites](../getting-started/prerequisites.md#2-dns-and-tls) |
 | `401` from `/v1/models` | Wrong or missing `Authorization: Bearer`. Get the key from secret `litellm-master-key` in namespace `litellm`. |
 | Empty model list | Set `llm_services_autodeploy_models` to at least one catalog name in `config.agent-toolkit.yaml`, then re-run `install`. |
 | `NRI pre-flight failed: not enough physical cores` | The default model took the only NUMA node's cores. Set an explicit `cpu:` in `models.yaml`, or `./model-manager undeploy <name>` and deploy a smaller model. |

@@ -58,7 +58,11 @@ Open-source proxy that presents many model backends as one OpenAI-compatible API
 
 ## Master key
 
-The LiteLLM admin token. Stored in the Kubernetes secret `litellm-master-key` in namespace `litellm`. Use it for the install smoke test and to create virtual keys. Do not put it in application code or in git. How to read it: [Backend connection reference](backend-connections.md) and [FAQ: Where is the API key?](../faq-and-troubleshooting/frequently-asked-questions.md#api-key). For agents, create a virtual key: [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model).
+The LiteLLM admin token. Stored in the Kubernetes secret `litellm-master-key` in namespace `litellm`. Use it for the install smoke test and to create virtual keys. Do not put it in application code or in git. How to read it: [Backend connection reference](backend-connections.md) and [FAQ: Where is the API key?](../faq-and-troubleshooting/frequently-asked-questions.md#api-key).
+
+## Virtual key
+
+A per-application LiteLLM API key created from the master key. Put this in agent code, not the master key. How to create one: [Access the model](https://github.com/intel/toolkit-manager/blob/main/docs/getting-started/deploy-models.md#access-the-model) and [Build your first agent](../getting-started/first-agent.md).
 
 ## pgvector
 

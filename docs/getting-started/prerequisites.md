@@ -2,7 +2,7 @@
 
 [← Docs index](../README.md)
 
-Do this once, on every server that will be part of the cluster, **before** the first `install`. When SSH and DNS (or `/etc/hosts`) are in place, go to the [single-node quickstart](quickstart.md). If you already know you will use several servers, still finish this page, then follow [multi-node deployment](../deployment/multi-node.md) instead of the single-node path.
+Do this once, on every server that will be part of the cluster, **before** the first `install`. When SSH and host prep are done, go to the [single-node quickstart](quickstart.md). `/etc/hosts` (or DNS) can wait until browsers need the gateway names; the smoke test uses `--resolve`. If you already know you will use several servers, still finish this page, then follow [multi-node deployment](../deployment/multi-node.md) instead of the single-node path.
 
 ## Hardware
 
@@ -67,16 +67,16 @@ After `init`, list machines in `env/<name>/nodes.yaml` (`nodes_control_plane`, `
 
 The gateway is HTTPS. Browsers and `curl` need a name that matches the certificate.
 
-`base_domain_name` is that name. Set it in Toolkit Manager `env/<name>/global_config.yaml` (default `inteltoolkits.ai`). With the default, these hostnames must resolve:
+`base_domain_name` is that name. Change it in `env/<name>/global_config.yaml` after `init` (default `inteltoolkits.ai`). With the default, these hostnames must resolve for a typical install:
 
 | Hostname | What it is |
 |---|---|
 | `litellm.inteltoolkits.ai` | LiteLLM UI and API (`auth_type: litellm_vkey`) |
 | `langfuse.inteltoolkits.ai` | Langfuse tracing UI |
-| `keycloak.inteltoolkits.ai` | Keycloak admin and UI sign-in (`auth_type: jwt`) |
+| `keycloak.inteltoolkits.ai` | Keycloak admin and UI sign-in |
 | `grafana.inteltoolkits.ai` | Grafana dashboards |
-| `ray.inteltoolkits.ai` | Ray Dashboard when KubeRay is on. [KubeRay](../reference/kuberay.md) |
-| `vllm-sr.inteltoolkits.ai` | vLLM Semantic Router dashboard. Not in this release |
+
+Add `ray.<domain>` when KubeRay is on ([KubeRay](../reference/kuberay.md)). Other feature hostnames appear in that feature’s guide.
 
 ### Production
 
@@ -99,19 +99,17 @@ sudo bash -c 'cat >> /etc/hosts <<EOF
 <GATEWAY_IP> langfuse.inteltoolkits.ai
 <GATEWAY_IP> keycloak.inteltoolkits.ai
 <GATEWAY_IP> grafana.inteltoolkits.ai
-<GATEWAY_IP> ray.inteltoolkits.ai
-<GATEWAY_IP> vllm-sr.inteltoolkits.ai
 EOF'
 ```
 
-Optional: generate your own certificate instead of using `selfsigned`. OpenSSL 1.1.1 or later is required for `-addext`:
+Optional: generate your own certificate instead of using `selfsigned`. OpenSSL 1.1.1 or later is required for `-addext`. A wildcard covers every service hostname:
 
 ```bash
 DOMAIN="inteltoolkits.ai"   # or your base_domain_name
 mkdir -p ~/certs && cd ~/certs && \
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
   -subj "/CN=${DOMAIN}" \
-  -addext "subjectAltName = DNS:${DOMAIN}, DNS:litellm.${DOMAIN}, DNS:langfuse.${DOMAIN}, DNS:keycloak.${DOMAIN}, DNS:grafana.${DOMAIN}, DNS:ray.${DOMAIN}, DNS:vllm-sr.${DOMAIN}"
+  -addext "subjectAltName = DNS:${DOMAIN}, DNS:*.${DOMAIN}"
 ```
 
 That writes `cert.pem` and `key.pem`. After `init`, set them in `env/local/global_config.yaml`:

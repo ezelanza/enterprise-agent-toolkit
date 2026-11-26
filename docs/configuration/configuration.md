@@ -10,8 +10,6 @@ After `init`, configuration lives as several YAML files under `env/<name>/` (the
 
 Omit `--env` to use `local`.
 
-> Older docs and the standalone monolith used `core/inventory/agentic-config.cfg` and `vault.yml`. Those files are gone. The mapping at the bottom of this page is only for people migrating from that layout.
-
 ## The files
 
 These are the files `init` writes under `env/local/`. Change the copies here; they are what `install` reads.
@@ -65,26 +63,14 @@ Legacy: `auth_provider` in `global_config.yaml` (`litellm` / `keycloak`) is depr
 
 ### `config.inference.yaml`
 
-This file turns inference routers (and related guardrail flags) on or off. **Which chat models deploy is not here.** Put those names in `llm_services_autodeploy_models` in `config.agent-toolkit.yaml`.
-
-**What routing is.** By default, an application names one deployed model (for example `qwen2-5-coder-14b`) on every `/v1/chat/completions` call. Routing replaces that with a virtual model name. The stack looks at the prompt, picks which real model should answer, and returns the completion. The client still calls the same gateway URL; only the `"model"` value changes.
-
-**Why it matters.** You often run several models at once: a small fast one for simple questions, a larger one for hard code or reasoning, and maybe a specialist for a category such as coding. Without routing, every client has to know which model to call. With routing, clients keep one name, and the stack sends easy prompts to the cheap model and hard prompts to the capable one. That cuts cost and latency without changing the application.
-
-Routing is optional. A request that names a real model goes straight to that model. A virtual model name picks a router instead. There are two kinds of routing to choose from.
-
-#### LiteLLM-based routing
-
-Complexity, hybrid, and semantic routers run through the LiteLLM gateway. The flag in this file is for the toolkit **hybrid router**: `hybrid_router_enabled` defaults to `true`, and install creates the virtual model `hybrid-router`. That router classifies how complex the prompt is, then selects a deployed model. Details: [Routing](routing.md) and [Hybrid router](hybrid-router.md).
-
-#### vLLM-SR
-
-vLLM Semantic Router is separate from the LiteLLM options above. Set `vllm_sr_enabled: true` to install it. Clients call the virtual model `vllm-sr/auto`; the router classifies by intent or category and selects a deployed model. Details: [Routing](routing.md) and [vLLM semantic router](semantic-router.md).
+This file turns inference routers (and related guardrail flags) on or off. **Which chat models deploy is not here.** Put those names in `llm_services_autodeploy_models` in `config.agent-toolkit.yaml`. Routing (optional virtual model names) is covered in [Routing](routing.md).
 
 ```yaml
-hybrid_router_enabled: true
-# vllm_sr_enabled: false
+hybrid_router_enabled: true   # virtual model hybrid-router — see Hybrid router
+# vllm_sr_enabled: false      # opt-in — see vLLM semantic router
 ```
+
+Details: [Hybrid router](hybrid-router.md), [vLLM semantic router](semantic-router.md).
 
 ### `models.yaml`
 
@@ -139,30 +125,7 @@ export HF_TOKEN=hf_...
 
 Skip this if every model in `llm_services_autodeploy_models` is ungated, or if that list is `[]`. The default `qwen2-5-coder-14b` is ungated.
 
-## If you used the old INI file
-
-The standalone stack stored flags in `agentic-config.cfg`. Toolkit Manager maps those flags to the YAML files above. Use this table only if you are migrating; new installs should ignore the left column.
-
-| Old `agentic-config.cfg` | Now |
-|---|---|
-| `deploy_redis` / `deploy_pgvector` / `deploy_agent_sandbox` | `redis_stack_enabled` / `pgvector_enabled` / `agent_sandbox_enabled` |
-| `deploy_kuberay=on` | `kuberay_enabled: true` |
-| `deploy_llm_models`, `models=` | `llm_services_autodeploy_models`; `./model-manager deploy <name>` |
-| `deploy_guardrails=on` | `guardrails_enabled` (on when `auth_type` is `litellm_vkey`) |
-| `deploy_observability=on` | `observability_enabled` in `global_config.yaml` |
-| `deploy_vllm_sr` | `vllm_sr_enabled` in `config.inference.yaml` |
-| `cert_file` / `key_file` | `gateway_tls_mode: custom` + cert/key paths |
-| `cluster_url` | `base_domain_name` |
-| `hugging_face_token` | `export HF_TOKEN=...` |
-| `http_proxy` / `https_proxy` / `no_proxy` | Same keys in `global_config.yaml` |
-| `deploy_kubernetes_fresh` | Omit `existing_kubernetes` and the installer creates the cluster |
-| `vault.yml` | Removed: installer generates secrets |
-
-In this release through Toolkit Manager: rack-scale fabric (`rack_scale_enabled`) and Intel® Arc™ GPUs (`./model-manager deploy … --server vllm-xpu`). See [Rack-scale](../deployment/rack-scale.md) and [Intel® Arc™ GPU](../deployment/intel-arc.md). Not in this release: the Flowise plugin (`deploy_agenticai_plugin`) and `air_gapped`. Kata Containers (`kata_containers_enabled`, `kata-fc` / `kata-qemu`) is a sandbox option and needs `agent_sandbox_enabled: true`. The steps are in [Agent sandbox](../reference/agent-sandbox.md#kata-containers). Docker Compose is a separate path: [Docker](../deployment/docker.md) uses `docker/deploy.sh`, not `./toolkit_manager.sh install`.
-
----
-
-*Intel, the Intel logo, and Arc are trademarks of Intel Corporation or its subsidiaries.*
+Related paths (not required for the first install): [Rack-scale](../deployment/rack-scale.md), [Intel® Arc™ GPU](../deployment/intel-arc.md), Kata options in [Agent sandbox](../reference/agent-sandbox.md#kata-containers), and [Docker Compose](../deployment/docker.md).
 
 ## Next steps
 

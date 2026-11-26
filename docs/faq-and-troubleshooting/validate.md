@@ -113,7 +113,7 @@ An install that stopped during `kubeadm` leaves `/var/lib/kubelet/config.yaml` o
 
 ### Preflight fails on a node connection
 
-The playbook runs on the installer machine and runs some steps on each node (Kata setup, CPU pinning). A node with no `ansible_connection` gets those steps on the installer machine, so they configure the wrong host. In `env/local/inventory/hosts.yaml`, set `ansible_connection: ssh` on every node reached over SSH, and `ansible_connection: local` on the machine running the installer. Then install again.
+The playbook runs on the installer machine and runs some steps on each node (Kata setup, CPU pinning). A node reached over SSH must use SSH from the installer host, not run those steps locally. List every machine in `env/local/nodes.yaml` with working `nodes_ssh_user` / `nodes_ssh_key` (or per-node SSH fields); the installer regenerates `inventory/hosts.yaml` from that file. Do not hand-edit `hosts.yaml`. Then install again. See [multi-node](../deployment/multi-node.md#1-seed-config-then-list-every-node).
 
 ### A model is still loading
 

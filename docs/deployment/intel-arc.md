@@ -2,7 +2,7 @@
 
 [← Docs index](../README.md)
 
-Serve models on Intel® Arc™ GPUs through Toolkit Manager. The old single-repo path (`agentic-config.cfg`, menu `31`–`36`, `compute_platform=xpu`) is gone.
+Serve models on Intel® Arc™ GPUs through Toolkit Manager.
 
 ## What to use
 
