@@ -116,7 +116,9 @@ A working reply includes `choices[0].message.content`. The master key is only fo
 
 ### 4. Connect your agent
 
-Create a virtual key and run a LangChain agent against this stack: **[build your first agent](docs/getting-started/first-agent.md)**.
+Any OpenAI-compatible framework can call this gateway (LangGraph, CrewAI, OpenClaw, Microsoft Agent Framework, and others). Create a virtual key, point the client at the base URL, and keep your existing agent code.
+
+A worked LangChain example is **[build your first agent](docs/getting-started/first-agent.md)** — same base URL and virtual key pattern for the other frameworks above.
 
 When you want a different domain or model, use the [single-node quickstart](docs/getting-started/quickstart.md).
 
