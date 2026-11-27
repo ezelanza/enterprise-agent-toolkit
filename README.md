@@ -116,7 +116,11 @@ A working reply includes `choices[0].message.content`. The master key is only fo
 
 ---
 
-**Next: connect your agent to the gateway.** Follow [build your first agent](docs/getting-started/first-agent.md) to create a virtual key and run a LangChain agent against this stack.
+## Next: connect your agent
+
+> **Point your agent at this gateway.** Create a virtual key and run a LangChain agent against this stack.
+
+Follow **[build your first agent](docs/getting-started/first-agent.md)**.
 
 When you want a different domain or model, use the [single-node quickstart](docs/getting-started/quickstart.md).
 
