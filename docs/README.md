@@ -31,7 +31,7 @@ The technical documentation for Intel® Agent Toolkit. Start with **Meet** for t
 |---|---|
 | [Multi-node](deployment/multi-node.md) | One control plane plus worker nodes |
 | [Rack-scale](deployment/rack-scale.md) | High-speed fabric via Toolkit Manager (`rack_scale_enabled`) |
-| [Intel® Arc™ GPU](deployment/intel-arc.md) | GPU serving via Toolkit Manager (`vllm-xpu`) |
+| [Intel® Arc™ GPU](deployment/intel-arc.md) | GPU serving via Toolkit Manager (`vllm-xpu`), including Arc Pro B-Series / B70 |
 | [Docker Compose](deployment/docker.md) | Containers on one Linux host without Toolkit Manager |
 | [Decommission](deployment/decommission.md) | Tear the install down and install again |
 

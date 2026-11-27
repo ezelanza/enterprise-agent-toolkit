@@ -2,11 +2,11 @@
 
 [← Docs index](../README.md)
 
-Serve models on Intel® Arc™ GPUs through Toolkit Manager.
+Serve models on Intel® Arc™ GPUs through Toolkit Manager, including Intel® Arc™ Pro B-Series (B70) and other Xe GPUs.
 
 ## What to use
 
-1. Install the stack with Toolkit Manager as usual ([Prerequisites](../getting-started/prerequisites.md), then the [quickstart](../getting-started/quickstart.md) or [multi-node](multi-node.md)).
+1. Install the stack with Toolkit Manager as usual ([Prerequisites](../getting-started/prerequisites.md), then the [quickstart](../getting-started/quickstart.md) or [multi-node](multi-node.md)). On GPU hosts, Toolkit Manager installs the Intel GPU device plugin when Node Feature Discovery sees an Intel GPU — details for Arc Pro B-Series / B70 and other Xe GPUs: [Install the platform](https://github.com/intel/toolkit-manager/blob/main/docs/deployment/install-platform.md) in Toolkit Manager.
 2. Deploy a catalog model that uses the `vllm-xpu` runtime, for example `vllm-xpu-llama-3-1-8b` or `vllm-xpu-gpt-oss-20b`:
 
    ```bash

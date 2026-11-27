@@ -130,7 +130,7 @@ When you want a different domain or model, use the [single-node quickstart](docs
 | **Multi-node** | One control plane plus workers | [Multi-node](docs/deployment/multi-node.md) |
 | **Docker Compose** | Containers on one Linux host, without Toolkit Manager | [Docker](docs/deployment/docker.md) |
 
-Also available: [rack-scale](docs/deployment/rack-scale.md) and [Intel® Arc™ GPU](docs/deployment/intel-arc.md) (both via Toolkit Manager).
+Also available: [rack-scale](docs/deployment/rack-scale.md) and [Intel® Arc™ GPU](docs/deployment/intel-arc.md) (both via Toolkit Manager). For Intel® Arc™ Pro B-Series (B70) and other Xe GPUs, start with Toolkit Manager’s [Install the platform](https://github.com/intel/toolkit-manager/blob/main/docs/deployment/install-platform.md) (GPU device plugin), then [Intel® Arc™ GPU](docs/deployment/intel-arc.md) to serve a model.
 
 ---
 
