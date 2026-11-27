@@ -114,13 +114,9 @@ curl --cacert env/local/logs/toolkit-manager-ca.crt \
 
 A working reply includes `choices[0].message.content`. The master key is only for this check.
 
----
+### 4. Connect your agent
 
-## Next: connect your agent
-
-> **Point your agent at this gateway.** Create a virtual key and run a LangChain agent against this stack.
-
-Follow **[build your first agent](docs/getting-started/first-agent.md)**.
+Create a virtual key and run a LangChain agent against this stack: **[build your first agent](docs/getting-started/first-agent.md)**.
 
 When you want a different domain or model, use the [single-node quickstart](docs/getting-started/quickstart.md).
 
